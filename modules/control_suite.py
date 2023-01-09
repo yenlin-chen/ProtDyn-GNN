@@ -373,12 +373,16 @@ class Experiment():
             t_acc = ( t_recall + t_spec )/2
             v_acc = ( v_recall + v_spec )/2
 
-            print(f'    <LOSS> train: {t_loss:.10f}, '
+            print(f'    Threshold: 0.5')
+            print(f'      <LOSS> train: {t_loss:.10f}, '
                   f'valid: {v_loss:.10f}')
-            print(f'    <ACC>  train: {t_acc:.10f}, '
+            print(f'      <ACC>  train: {t_acc:.10f}, '
                   f'valid: {v_acc:.10f}')
-            print(f'    <F1>   train: {t_f1:.10f}, '
+            print(f'      <F1>   train: {t_f1:.10f}, '
                   f'valid: {v_f1:.10f}')
+            print(f'    Threshold @ F1_max')
+            print(f'      <ACC>    valid: {acc[f1_max_idx]:.10f}')
+            print(f'      <F1>     valid: {f1_max:.10f}')
             loss_acc_f1_hist[idx] = [
                 t_loss,   v_loss,
                 t_acc,    v_acc,
