@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import warnings
+from Bio import BiopythonDeprecationWarning
+warnings.filterwarnings("ignore", category=BiopythonDeprecationWarning)
+
 from sys import path as systemPath
 systemPath.append('../../')
 
