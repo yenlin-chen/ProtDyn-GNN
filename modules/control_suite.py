@@ -357,7 +357,9 @@ class Experiment():
             t_loss, tp_fp_tn_fn = self._train_one_epoch()
             t_prec, t_recall, t_spec, t_f1 = self.comp_metrics(*tp_fp_tn_fn)
 
-            v_loss, tp_fp_tn_fn, tp_fp_tn_fn_all, thres_list = self.validate(return_pr=True)
+            v_loss, tp_fp_tn_fn, tp_fp_tn_fn_all, thres_list = self.validate(
+                return_pr=True
+            )
             v_prec, v_recall, v_spec, v_f1 = self.comp_metrics(*tp_fp_tn_fn)
 
             # compute all metrics
