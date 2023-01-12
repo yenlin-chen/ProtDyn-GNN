@@ -56,7 +56,7 @@ coverage.xml
 *.pot
 
 # Django stuff:
-*.log
+# *.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -71,8 +71,8 @@ instance/
 # Sphinx documentation
 docs/_build/
 
-# PyBuilder
-target/
+# # PyBuilder
+# target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
