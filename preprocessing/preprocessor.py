@@ -88,8 +88,7 @@ tnm_exe = path.join(module_dir, 'tnm')
 
 class Preprocessor():
 
-    def __init__(self, set_name, entry_type, go_thres=25, verbose=True,
-                 coord_and_deform_coupling_not_implemented=False):
+    def __init__(self, set_name, entry_type, go_thres=25, verbose=True):
 
         '''
         Directory manager for data preprocesing. Also provides the
@@ -172,10 +171,6 @@ class Preprocessor():
         ################################################################
         # save a list of resnames encountered in the dataset
         self.all_resnames = []
-
-        self.coord_and_deform_coupling_not_implemented = (
-            coord_and_deform_coupling_not_implemented
-        )
 
     def _get_mfgo_for_pdb(self, ID, redownload=False,
                           request_timeout=10, verbose=None):
@@ -827,9 +822,6 @@ class Preprocessor():
         utils.vprint(verbose,
                      f'Retrieving graphs (ANM) for \'{ID}\'...',
                      end='', flush=True)
-        if not self.coord_and_deform_coupling_not_implemented:
-            raise NotImplementedError('Coordination and deformation coupling '
-                                      'are not implemented for ANM yet.')
 
         # define save directory for graphs
         save_dir = path.join(df_graph_root,
