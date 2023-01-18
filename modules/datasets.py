@@ -17,38 +17,39 @@ import networkx as nx
 import numpy as np
 import torch
 import torch_geometric as pyg
+from torch_geometric.transforms import Compose
 from tqdm import tqdm
 
 
 module_dir = path.dirname(path.realpath(__file__))
 pyg_cache_root = path.join(module_dir, 'pyg_cache')
 
-def remove_elements(binary_flags):
-    '''Returns a transformation function to remove unwanted subgraphs'''
-    def transformation_func(data):
-        '''The transformation function'''
+def rm_contact(data):
+    data.edge_type[:,0] = 0
+    return data
+def rm_codir(data):
+    data.edge_type[:,1] = 0
+    return data
+def rm_coord(data):
+    data.edge_type[:,2] = 0
+    return data
+def rm_deform(data):
+    data.edge_type[:,3] = 0
+    return data
+def rm_pi(data):
+    del data.pi
+    return data
+def rm_blank_edges(data):
+    keep_slice = torch.sum(data.edge_type, 1) > 0
+    # remove unwanted edges and edges info
+    data.edge_index = data.edge_index[:,keep_slice]
+    data.edge_type  = data.edge_type[keep_slice]
+    return data
 
-        if not binary_flags[:-1].all():
-            # let edge_type of unwanted edges be 0
-            data.edge_type = np.logical_and(data.edge_type,
-                                            binary_flags[:-1]).astype(np.int_)
-
-            # find edges to keep
-            keep_slice = np.zeros((data.edge_type.shape[0],), dtype=np.bool_)
-            for i in range(4):
-                keep_slice |= (edge_type[:,i]==1)
-
-            # remove unwanted edges and edges info
-            data.edge_index = torch.edge_index[keep_slice]
-            data.edge_type  = torch.edge_type[keep_slice]
-
-        # remove persistence diagram
-        if binary_flags[-1] == 0:
-            del data.pi
-
-        return data
-
-    return transformation_func
+transform_list = np.array(
+    [rm_contact, rm_codir, rm_coord, rm_deform, rm_pi, rm_blank_edges],
+    dtype=np.object_
+)
 
 class ProDAR_Dataset(pyg.data.Dataset):
 
@@ -81,9 +82,6 @@ class ProDAR_Dataset(pyg.data.Dataset):
         if entry_type != 'monomer':
             raise NotImplementedError('Only monomers are supported at '
                                       'the moment')
-
-        self.binary_flags = np.array([cont, codir, coord, deform, pers],
-                                     dtype=np.bool_)
 
         ################################################################
         # folder names containing data of the specified setup
@@ -141,13 +139,22 @@ class ProDAR_Dataset(pyg.data.Dataset):
             self.download()
 
         ################################################################
+        # construct the transformation before data access
+        ################################################################
+        binary_flags = np.array([cont, codir, coord, deform, pers],
+                                dtype=np.bool_)
+        if binary_flags.all():
+            transform = None
+        else:
+            # dimension off = transformation on
+            binary_flags = np.logical_not(binary_flags)
+            # rm_blank_edges not required if all dimensions are on
+            binary_flags = np.append(binary_flags, not (cont&codir&coord&deform))
+            transform = Compose(transform_list[binary_flags])
+
+        ################################################################
         # Call constuctor of parent class
         ################################################################
-        if not self.binary_flags.all():
-            transform = remove_elements(self.binary_flags)
-        else:
-            transform = None
-
         super().__init__(self.raw_graph_dir, transform, None, None)
         print('Dataset Initialization Complete\n')
 
@@ -350,7 +357,7 @@ class TNM_8A_all(ProDAR_Dataset):
     def get(self, idx):
         return super().get(idx)
 
-class ANM_8A_11001(ProDAR_Dataset):
+class ANM_8A_11001_temporary(ProDAR_Dataset):
 
     def __init__(self, set_name, go_thres, entry_type):
 
@@ -410,11 +417,11 @@ class ANM_8A_11001(ProDAR_Dataset):
     def get(self, idx):
         return super().get(idx)
 
-class TNM_8A_10001(ProDAR_Dataset):
+class TNM_8A_11001(ProDAR_Dataset):
 
     def __init__(self, set_name, go_thres, entry_type):
 
-        cont, codir, coord, deform, pers = True, False, False, False, True
+        cont, codir, coord, deform, pers = True, True, False, False, True
 
         enm_type = 'tnm'
         cutoff = 8
