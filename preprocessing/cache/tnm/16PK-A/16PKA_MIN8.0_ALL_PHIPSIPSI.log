@@ -1,0 +1,267 @@
+
+************************************************
+*********** Get arguments/parameters ***********
+************************************************
+
+Reading parameters in /mnt/e/yenlin/Dropbox/projects/algo-ProDAR/code/code-v2/preprocessing/cache/tnm/16PK-A/16PKA_MIN8.0_ALL_PHIPSIPSI.in
+Elastic constant for phi angle:    0.500
+Elastic constant for psi angle:    0.500
+WARNING, elastic constant for omega set but omega is frozen
+Elastic constant for chi angle:    0.500
+Elastic constant for bond lengths: 1.00
+Elastic constant for bond angles: 0.50
+COLL_THR= 10.0
+Contact type set to MIN
+Exponent of force constant = 6.000
+Degrees of freedom: Torsional (TNM, default)
+Reference atoms: ALL Contact type: MIN
+
+************************************************
+*********** Read protein structure 1 ***********
+************************************************
+
+Reading /mnt/e/yenlin/Dropbox/projects/algo-ProDAR/code/code-v2/preprocessing/cache/tnm/16PK-A/16PK.pdb Counting residues in 1 chains A
+Counting 415 residues in 1 chains: A
+Reading /mnt/e/yenlin/Dropbox/projects/algo-ProDAR/code/code-v2/preprocessing/cache/tnm/16PK-A/16PK.pdb 1 chains to read
+Reading 415 residues in 1 chains: A
+PDB 16PK chain A nres=415 natoms=3127
+Storing 3127 atoms in 1 chains
+Storing 1 chains: A
+1 chains found: A.
+Reading /mnt/e/yenlin/Dropbox/projects/algo-ProDAR/code/code-v2/preprocessing/cache/tnm/16PK-A/16PK.pdb Reading chain 0 A 415 residues
+415 residues read 415 expected for chain 1
+
+************************************************
+*********** Ref atoms Kinetic Energy ***********
+************************************************
+
+3127 atoms out of 3127 selected for kinetic energy (ALL)
+3127 reference atoms
+
+************************************************
+*********** Center coordinates *****************
+************************************************
+
+Determinant= -1.000
+Determinant= 1.000
+
+************************************************
+*********** Prepare output files ***************
+************************************************
+
+output file (nameout1): 16PKA_MIN8.0_ALL_PHIPSIPSI
+output file (summary1): 16PKA_MIN8.0_ALL_PHIPSIPSI.summary.dat
+
+************************************************
+*********** Topology? ***************
+************************************************
+
+3127 atoms, 3127 bonds for building the molecule
+Testing build up
+RMSD with no torsion change: 1e-08
+
+************************************************
+*********** ENM contacts/interactions **********
+************************************************
+
+5408 interactions of type MIN found
+Computing force constant
+Interpolating to zero between 8.000 and 8.000
+Power law k= 200 (r/3.5)^-6.0
+Printing contact matrix
+Writing contact matrix in 16PKA_MIN8.0_ALL_PHIPSIPSI_Cont_Mat.txt
+5408 interactions
+Contact matrix computation.Time= 0.03 sec.
+
+************************************************
+*********** ENM degrees of freedom *************
+************************************************
+
+0 gaps found in protein
+Expected number of dofs: 1245
+
+Setting degrees of freedom for 1 chains
+Chain 1 type 1 atoms= 0-3126
+
+0 rigid degrees of freedom found (expected 0 for 1 chains)
+828 mainchain degrees of freedom
+Main axes skipped since < 1 interactions:
+f739 
+Skipped 1 axes over 828 (main)
+827 Axes: 827 main, 0 side
+chain 0 (A): 415 res 827 axes 0-826
+Chain A-pfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfppfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpfpf
+Number of degrees of freedom: 827
+
+************************************************
+*********** ENM memory allocation **************
+************************************************
+
+Hessian allocated
+Jacobian allocated
+Normal modes allocated
+Memory allocated
+
+************************************************
+*********** ENM kinetic en, Eckart cdt *********
+************************************************
+
+Center of mass:   -0.0000000  -0.0000000  0.0000000   M=41344
+Testing Eckart conditions for each axis (827)
+Kinetic_sqrt with Cholevsky decomposition
+Kinetic energy computation. Time= 0.17 sec.
+
+************************************************
+*********** ENM Hessian / normal modes  ********
+************************************************
+
+Torsional network model
+Computing Hessian with Cholevsky decomposition
+chain 0 (A): 5408 contacts
+Computing torsional potential
+Hessian computation. Time= 3.25 sec.
+Hessian diagonalization. Time= 1.39 sec.
+Torsional and Cartesian modes. Time= 5.13 sec.
+Normal modes computation. Time= 6.52 sec.
+Normal mode computation finished
+
+************************************************
+*********** ENM normal mode coll. **************
+************************************************
+
+Average omega^2 prior to norm: 1.3e+02
+(discard) AV_OME2          127.4   | average EV (or omega^2) before kappa fit
+(discard) LOGAV_OME2       70.79   | exp(average log(omega^2))
+(discard) MIN_OME2        0.1627   | min omega^2
+(discard) MAX_OME2         570.6   | max omega^2
+(discard) NORM_SIG2        42.77   | sum(1/omega^2) --> CONTR_TH = (1/omega^2)/NORM_SIG2
+(discard) THR_OME2     1.274e-06   | = EMIN * AV_OME2
+(discard) THR_COLL            30   |= COLL * 3 (cart coord per atom), max= 0.15*3*natoms
+(discard) N_Cart            9381   | = natoms * 3 --> collect = xxx/N_Cart
+Selecting modes of full interaction matrix
+827 modes selected
+0 modes discarded for low collectivity and 0 for low frequency
+Smallest positive eigenvalue: 0.16 a=0 Threshold for selection: 1e-08*<omega^2>
+Normal mode selection. Time= 0.05 sec.
+
+**************************************************
+**** Rescale force constant with B-factors ********
+***************************************************
+
+415 CA atoms selected in 415 residues
+RMSD of fluctuations (B fact tot)= 0.739
+r(B_pred,B_exp)= 0.706 offset= 0.273 force const factor=0.03962 (2 var fit)
+3 outliers eliminated for B factors fit
+Fitting B factors with internal and rigid body motions
+Ridge regression fit of type C, Lambda= 0.071
+r(Y_pred, Y_obs)= 0.901 slope=0.8354 off= 0.0863 (11 var ridge regr 412 samples)
+B-factor fit with rotations, force const factor= 13
+Force constant: 0.0771 x 200 = 15.42    -> K0 = 2.835e+04  (Bfactor fit)
+RMSD of normal modes= 0.421 (pred)
+Writing 16PKA_MIN8.0_ALL_PHIPSIPSI.MSF.dat
+FIT_B= 1 kappa= 0.0771
+Rescaling force constant by factor 0.0771
+Rescaling omega2 by factor 0.0771
+Fitting B factors. Time= 0.00 sec.
+(discard) KAPPA       0.0771    | ratio between OME2 above and in .Modes file
+
+************************************************
+*************** Anharmonicity ******************
+************************************************
+
+Assigning knowledge-based interactions
+--> NPAR =        2        number of parameters: 2 (only repulsion), 3 (barrier)
+--> Na   =       20        amino acids or atom types
+--> POW  =        1        1 power law, 0 exponential (kappa)
+--> EXPO =     6.00        kappa exponent
+--> k0   =    15.42        kappa0 (default value or Bfactor fit)
+--> OUTPUT: Int_KB[20][20]
+
+Assigning structure-based interactions
+--> NPAR  =        2        number of parameters: 2 (Morse) 3 (barrier)
+--> N_int =     5408        number of native interactions
+--> Int_list[]         list of all native interactions
+--> Int_KB[][]         knowledge-based interactions
+--> aa_seq[]           a.a. type ID of each residue in the seq
+--> OUTPUT: Int_list gets filled up with energy parameters
+5408 SB interactions assigned
+************************************************
+*********** Torsional fluctuations *************
+************************************************
+
+Writing 16PKA_MIN8.0_ALL_PHIPSIPSI.summary.dat
+Writing 16PKA_MIN8.0_ALL_PHIPSIPSI.Modes.dat
+************************************************
+************ Conformational Change *************
+************************************************
+
+Writing 16PKA_MIN8.0_ALL_PHIPSIPSI.MSF_tors.dat
+Predicting dynamical couplings, anharmonicity=0
+Max number contact per residue: 58
+Computing Deformation coupling
+Writing 16PKA_MIN8.0_ALL_PHIPSIPSI.names.dat
+Writing 16PKA_MIN8.0_ALL_PHIPSIPSI.coordination_coupling.dat
+Computing profiles of Coord type C
+<EC_i>^2/<EC_i^2>= 0.983
+  0 164 -0.00072 -0.00021
+  1 160 2.4e-05 -0.00022
+  2 160 5.7e-09 -0.00022
+EC of Coord computed, lambda1= 156 Lambda= 160
+Writing 16PKA_MIN8.0_ALL_PHIPSIPSI.deformation_coupling.dat
+Computing profiles of Deformation type C
+<EC_i>^2/<EC_i^2>= 0.871
+  0 3.96 -0.0033 -0.066
+  1 3.91 6.3e-05 -0.069
+  2 3.91 3.9e-08 -0.069
+EC of Deformation computed, lambda1= 3.77 Lambda= 3.91
+Writing 16PKA_MIN8.0_ALL_PHIPSIPSI.directionality_coupling.dat
+Computing profiles of Directionality type C
+<EC_i>^2/<EC_i^2>= 0.999
+  0 182 0.00036 -1.7e-05
+  1 203 6.6e-05 -1.1e-05
+  2 209 3.5e-06 -1e-05
+EC of Directionality computed, lambda1= 173 Lambda= 209
+Writing 16PKA_MIN8.0_ALL_PHIPSIPSI.proximity_coupling.dat
+Computing profiles of proximity type C
+<EC_i>^2/<EC_i^2>= 0.990
+  0 2.12 0.15 -0.96
+  1 2.27 0.068 -0.28
+  2 2.52 0.029 -0.089
+  3 2.85 0.011 -0.034
+  4 3.17 0.0033 -0.016
+  5 3.38 0.00054 -0.011
+  6 3.42 2.1e-05 -0.011
+  7 3.42 1.5e-08 -0.011
+EC of proximity computed, lambda1= 2.02 Lambda= 3.42
+Reading binding sites
+Reading sites in file /mnt/e/yenlin/Dropbox/projects/algo-ProDAR/code/code-v2/preprocessing/cache/tnm/16PK-A/16PK.pdb, chain A 415 residues
+Reading /mnt/e/yenlin/Dropbox/projects/algo-ProDAR/code/code-v2/preprocessing/cache/tnm/16PK-A/16PK.pdb WARNING, residue 505_A_HOH not found
+WARNING, residue 514_A_HOH not found
+WARNING, residue 523_A_HOH not found
+WARNING, residue 571_A_HOH not found
+WARNING, residue 673_A_HOH not found
+WARNING, residue 766_A_HOH not found
+WARNING, residue 768_A_HOH not found
+WARNING, residue 779_A_HOH not found
+WARNING, residue 781_A_HOH not found
+WARNING, residue 799_A_HOH not found
+WARNING, residue 872_A_HOH not found
+WARNING, residue 874_A_HOH not found
+WARNING, residue 902_A_HOH not found
+WARNING, residue 981_A_HOH not found
+WARNING, residue 1020_A_HOH not found
+WARNING, residue 1032_A_HOH not found
+WARNING, residue 1034_A_HOH not found
+WARNING, residue 1037_A_HOH not found
+WARNING, residue 567_A_HOH not found
+WARNING, residue 676_A_HOH not found
+WARNING, residue 809_A_HOH not found
+WARNING, residue 871_A_HOH not found
+27 residues read in 2 binding sites out of 2
+Writing binding sites in 16PKA_sites.in
+2 binding sites read
+Writing 16PKA_MIN8.0_ALL_PHIPSIPSI.binding_sites.dat
+Writing 16PKA_MIN8.0_ALL_PHIPSIPSI.binding_residues.dat
+Writing 16PKA_MIN8.0_ALL_PHIPSIPSI.pairs_sites.dat
+Writing 16PKA_MIN8.0_ALL_PHIPSIPSI.profiles.dat
+Dynamical coupling. Time= 1.78 sec.

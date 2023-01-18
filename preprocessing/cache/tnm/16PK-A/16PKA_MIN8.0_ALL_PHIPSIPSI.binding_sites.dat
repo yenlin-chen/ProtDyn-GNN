@@ -1,0 +1,8 @@
+# read binding sites in file /mnt/e/yenlin/Dropbox/projects/algo-ProDAR/code/code-v2/preprocessing/cache/tnm/16PK-A/16PK.pdb
+# profile type C
+# N= 415, 1000 random sites
+### 1=nres	2=nchain	3=<directionality_prof>	4=Z(directionality_prof)	5=P>(directionality_prof)	6=<directionality_coup>	7=Z(directionality_coup)	8=P>(directionality_coup)	9=<coordination_prof>	10=Z(coordination_prof)	11=P>(coordination_prof)	12=<coordination_coup>	13=Z(coordination_coup)	14=P>(coordination_coup)	15=<proximity_prof>	16=Z(proximity_prof)	17=P>(proximity_prof)	18=<proximity_coup>	19=Z(proximity_coup)	20=P>(proximity_coup)	21=<deformation_prof>	22=Z(deformation_prof)	23=P>(deformation_prof)	24=<deformation_coup>	25=Z(deformation_coup)	26=P>(deformation_coup)
+##  BINDING SITE FOR RESIDUE BIS A 499                 
+16	1	0.0165	2.8	0.000	0.322	6.3	0.000	0.39	0.8	0.196	0.471	2.3	0.017	0.00286	3.1	0.010	0.0218	6.4	0.000	0.00853	-0.3	0.569	0.00863	0.0	0.436
+##  BINDING SITE FOR RESIDUE EPE A 430                 
+11	1	-0.00511	-1.7	0.964	0.259	2.0	0.076	0.333	-2.0	1.000	0.376	-0.7	0.680	0.00171	-2.3	1.000	0.0235	2.1	0.018	0.0124	2.2	0.000	0.0171	2.7	0.000

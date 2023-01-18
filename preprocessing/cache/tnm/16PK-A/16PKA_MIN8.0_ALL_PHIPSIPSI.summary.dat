@@ -1,0 +1,37 @@
+Para: Psi=1  Omega=0 Sidechain=0 Min_int=1  REF=ALL E_MIN=1e-08 COLL_THR=10 K_O=0 K_F=0.5 K_P=0.5 K_C=0 K_BA=0.5 K_BL=1 CONT=MIN  thr=8.00 EXPO=6.0  KAPPA obtained from fit KAPPA=200.0
+protein               16PKA
+Nchain                1
+Nres                  415
+Mass                  41344
+Degrees of freedom    827
+Rigid Deg of freed    0
+Side chain            0
+Skipped main chain    1
+Discarded modes coll. 0
+Discarded modes freq. 0
+Discarded modes outl. 0
+Disordered gaps       0
+Native interactions   5408
+Force constant at 3.5A 15.42
+Temperature:          100 K
+Estimated surface     -5.131
+Contact energy        -169.4
+#
+# Harmonic approximation:
+Recp.Coll(therm)      120
+Ave_collectivity_NM   0.313
+kT/h=                0.8423
+Quantum modes:        765 / 827
+Entropy per res       0.699
+Free energy per res   3.012
+#B-factors, harmonic analysis
+r(B_pred,B_exp)       0.901
+Force constant factor 0.077
+RMSD_crystal          0.739 (all)
+RMSD_crystal          0.375 (internal)
+RMSD_Norm.Modes       0.421
+Internal_fluct        0.258
+Translation_fluct     0.377
+Rotation_fluct        0.366
+Torsional_RMSD_Harm   0.001
+#

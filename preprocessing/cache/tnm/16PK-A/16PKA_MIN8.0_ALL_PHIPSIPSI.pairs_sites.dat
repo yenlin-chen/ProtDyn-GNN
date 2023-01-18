@@ -1,0 +1,6 @@
+# read binding sites in file /mnt/e/yenlin/Dropbox/projects/algo-ProDAR/code/code-v2/preprocessing/cache/tnm/16PK-A/16PK.pdb
+# profile type C
+# N= 415, 1000 random sites
+###1=nres1	2=nres2	3=overlap	4=<directionality_coup>	5=Z(directionality_coup)	6=P>(directionality_coup)	7=<coordination_coup>	8=Z(coordination_coup)	9=P>(coordination_coup)	10=<proximity_coup>	11=Z(proximity_coup)	12=P>(proximity_coup)	13=<deformation_coup>	14=Z(deformation_coup)	15=P>(deformation_coup)
+##  BINDING SITE FOR RESIDUE BIS A 499                 	 BINDING SITE FOR RESIDUE EPE A 430                 
+16	11	1	0.163	4.6	0.000	0.381	-0.3	0.480	0.0029	-0.7	0.677	0.0106	1.9	0.070

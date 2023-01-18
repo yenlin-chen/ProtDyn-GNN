@@ -1,0 +1,119 @@
+{
+    "GO:0000166": {
+        "category": "Molecular_function",
+        "definition": "Binding to a nucleotide, any compound consisting of a nucleoside that is esterified with (ortho)phosphate or an oligophosphate at any hydroxyl group on the ribose or deoxyribose.",
+        "identifier": "nucleotide binding",
+        "mappings": [
+            {
+                "chain_id": "A",
+                "entity_id": 1,
+                "struct_asym_id": "A"
+            }
+        ],
+        "name": "nucleotide binding"
+    },
+    "GO:0004618": {
+        "category": "Molecular_function",
+        "definition": "Catalysis of the reaction: 3-phospho-D-glycerate + ATP = 3-phospho-D-glyceroyl phosphate + ADP + H+.",
+        "identifier": "phosphoglycerate kinase activity",
+        "mappings": [
+            {
+                "chain_id": "A",
+                "entity_id": 1,
+                "struct_asym_id": "A"
+            }
+        ],
+        "name": "phosphoglycerate kinase activity"
+    },
+    "GO:0005524": {
+        "category": "Molecular_function",
+        "definition": "Binding to ATP, adenosine 5'-triphosphate, a universally important coenzyme and enzyme regulator.",
+        "identifier": "ATP binding",
+        "mappings": [
+            {
+                "chain_id": "A",
+                "entity_id": 1,
+                "struct_asym_id": "A"
+            }
+        ],
+        "name": "ATP binding"
+    },
+    "GO:0005777": {
+        "category": "Cellular_component",
+        "definition": "A small organelle enclosed by a single membrane, and found in most eukaryotic cells. Contains peroxidases and other enzymes involved in a variety of metabolic processes including free radical detoxification, lipid catabolism and biosynthesis, and hydrogen peroxide metabolism.",
+        "identifier": "peroxisome",
+        "mappings": [
+            {
+                "chain_id": "A",
+                "entity_id": 1,
+                "struct_asym_id": "A"
+            }
+        ],
+        "name": "peroxisome"
+    },
+    "GO:0006096": {
+        "category": "Biological_process",
+        "definition": "The chemical reactions and pathways resulting in the breakdown of a carbohydrate into pyruvate, with the concomitant production of a small amount of ATP and the reduction of NAD(P) to NAD(P)H. Glycolysis begins with the metabolism of a carbohydrate to generate products that can enter the pathway and ends with the production of pyruvate. Pyruvate may be converted to acetyl-coenzyme A, ethanol, lactate, or other small molecules.",
+        "identifier": "glycolytic process",
+        "mappings": [
+            {
+                "chain_id": "A",
+                "entity_id": 1,
+                "struct_asym_id": "A"
+            }
+        ],
+        "name": "glycolytic process"
+    },
+    "GO:0016301": {
+        "category": "Molecular_function",
+        "definition": "Catalysis of the transfer of a phosphate group, usually from ATP, to a substrate molecule.",
+        "identifier": "kinase activity",
+        "mappings": [
+            {
+                "chain_id": "A",
+                "entity_id": 1,
+                "struct_asym_id": "A"
+            }
+        ],
+        "name": "kinase activity"
+    },
+    "GO:0016310": {
+        "category": "Biological_process",
+        "definition": "The process of introducing a phosphate group into a molecule, usually with the formation of a phosphoric ester, a phosphoric anhydride or a phosphoric amide.",
+        "identifier": "phosphorylation",
+        "mappings": [
+            {
+                "chain_id": "A",
+                "entity_id": 1,
+                "struct_asym_id": "A"
+            }
+        ],
+        "name": "phosphorylation"
+    },
+    "GO:0016740": {
+        "category": "Molecular_function",
+        "definition": "Catalysis of the transfer of a group, e.g. a methyl group, glycosyl group, acyl group, phosphorus-containing, or other groups, from one compound (generally regarded as the donor) to another compound (generally regarded as the acceptor). Transferase is the systematic name for any enzyme of EC class 2.",
+        "identifier": "transferase activity",
+        "mappings": [
+            {
+                "chain_id": "A",
+                "entity_id": 1,
+                "struct_asym_id": "A"
+            }
+        ],
+        "name": "transferase activity"
+    },
+    "GO:0020015": {
+        "category": "Cellular_component",
+        "definition": "A membrane-bounded organelle found in organisms from the order Kinetoplastida that houses the enzymes of glycolysis.",
+        "identifier": "glycosome",
+        "mappings": [
+            {
+                "chain_id": "A",
+                "entity_id": 1,
+                "struct_asym_id": "A"
+            }
+        ],
+        "name": "glycosome"
+    }
+}
