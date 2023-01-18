@@ -236,6 +236,9 @@ class Preprocessor():
         utils.vprint(verbose, msg)
         return mfgo, msg
 
+    # def get_similarity_dataset(self, sim_cutoff, lt_heavy_atoms=5000):
+    #     pass
+
     def gen_labels(self, retry_download=False, redownload=False, verbose=None):
 
         '''
@@ -427,7 +430,7 @@ class Preprocessor():
 
                 else:
                     msg = (f'ProDy cannot resolve chain ID {chainID} '
-                           f'(Are you using auth_asym_id?)')
+                           f'(is it auth_asym_id?)')
                     utils.vprint(verbose, msg)
                     return None, msg
 
@@ -597,29 +600,6 @@ class Preprocessor():
                 utils.vprint(verbose, msg)
                 return graph_dict, msg
 
-        # if file was not found
-        # DEFUNCT
-        # ################################################################
-        # # compute contact map using ProDy
-        # ################################################################
-        # # use coords if given to save computation
-        # if not atoms:
-        #     atoms, msg = self._get_struct(ID, verbose=False)
-        #     if atoms is None:
-        #         utils.vprint(verbose, msg)
-        #         return None, msg
-        # n_residues = len(atoms)
-
-        # utils.vprint(verbose, '  Computing contact map...',
-        #              end='', flush=True)
-        # gnm = prody.GNM(ID) # use GNM object to extract Kirchhoff
-        # gnm.buildKirchhoff(atoms, cutoff=cutoff)
-
-        # # compute contact map
-        # utils.vprint(verbose, 'Kirchhoff...', flush=True)
-        # cont = - gnm.getKirchhoff().astype(np.int_) # not contact map
-        # np.fill_diagonal(cont, 1) # contact map is completed here
-
         if len(ID) == 4:
             raise NotImplementedError('Only supports monomers (chains), '
                                       'please specify chain ID.')
@@ -652,7 +632,8 @@ class Preprocessor():
         # if TNM results do not already exist
         if not all(file_existence):
             # decompress the .pdb.gz file downloaded by ProDy
-            compressed_file = path.join(pdb_cache_dir, f'{pdbID.lower()}.pdb.gz')
+            compressed_file = path.join(pdb_cache_dir,
+                                        f'{pdbID.lower()}.pdb.gz')
             uncompressed_file = path.join(cache_dir, f'{pdbID}.pdb')
             # check if uncompressed file already exists
             if not path.exists(uncompressed_file):
@@ -664,7 +645,7 @@ class Preprocessor():
                         copyfileobj(f_in, f_out)
 
             # modify tnm script template
-            with open(path.join(module_dir, 'tnm-template.in'), 'r') as f:
+            with open(path.join(module_dir, 'template-tnm.in'), 'r') as f:
                 script_content = f.read()
             replacements = [('PDBID_PLACEHOLDER',   uncompressed_file),
                             ('CHAINID_PLACEHOLDER', str(chainID)),
@@ -1115,7 +1096,8 @@ class Preprocessor():
                 # write entry to dataset-specific log
                 utils.append_to_file(f'{ID} -> ProDy: {msg}', dataset_log)
                 # write new entry to log for all datasets
-                utils.append_to_file(f'{ID} -> ProDy: {msg}', self.download_parse_log)
+                utils.append_to_file(f'{ID} -> ProDy: {msg}',
+                                     self.download_parse_log)
                 failed_ids.append(ID)
                 continue
             coords = atoms.getCoords().tolist()

@@ -185,14 +185,6 @@ class ProDAR_Dataset(pyg.data.Dataset):
     def processed_file_names(self):
         return [f'{ID}.pt' for ID in self.id_list]
 
-    # def save_args(self, save_dir):
-
-    #     with open(path.join(save_dir, 'prodar_dataset-args.json'),
-    #               'w+') as f_out:
-    #         f_out.write(f'class name: {type(self).__name__}\n')
-    #         json.dump(self.all_args, f_out,
-    #                   indent=4, separators=(',', ': '), sort_keys=True)
-
     def save_args(self, save_dir):
 
         self.all_args['class_name'] = type(self).__name__
