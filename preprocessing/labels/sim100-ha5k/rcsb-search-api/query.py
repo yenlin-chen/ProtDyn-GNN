@@ -1,30 +1,64 @@
 '''
-Converts list of PDB-entity ID into PDB-chain ID.
-Entities without annotations are discardeds.
+GET request using RCSB Search API to download pdbID-entityID.
 '''
 
-import numpy as np
-from os import path, chdir, getcwd, makedirs
-from tqdm import tqdm
 import json
 import requests
+import numpy as np
+from tqdm import tqdm
+from os import path, makedirs
+
+########################################################################
+# query RCSB to get a list of entities
+########################################################################
+
+payload_file = 'payload.json'
+
+# get payload text from file
+with open(payload_file, 'r') as f:
+    payload = f.read()
+
+# GET request
+url = f"https://search.rcsb.org/rcsbsearch/v2/query?json={payload}"
+data = requests.get(url)
+
+# decode returned data if request is successful
+if data.status_code != 200:
+    with open('error.txt', 'w+') as f:
+        f.write(f'{data.text}')
+        f.flush()
+    raise RuntimeError(f' -> GET Request failed with code {data.status_code}')
+decoded = data.json()
+
+print(f" -> {decoded['total_count']} entities received from RCSB")
+print(f" -> {len(decoded['result_set'])} entities after applying filter")
+
+# convert decoded data into lists
+entities = [entry['identifier'] for entry in decoded['result_set']]
+pdbs = np.unique([ID[:4] for ID in entities])
+
+# save list to corresponding directory
+np.savetxt('pdb_entity.txt', entities, fmt='%s')
+np.savetxt('pdb.txt', pdbs, fmt='%s')
+
+########################################################################
+# convert entity to chains
+########################################################################
 
 # define directories
-cwd = getcwd()
-cache_dir = '../../../cache/mfgo'
+cache_dir = path.join('..', '..', '..', 'cache', 'mfgo')
+target_dir = 'target-copy_to_upper_level'
 
 # define url
 url = 'https://www.ebi.ac.uk/pdbe/api/mappings/go/'
 
-# read PDB-entity IDs
-entities = np.loadtxt('pdb_entity.txt', dtype=np.str_)
-
 # open file resources
+makedirs(target_dir, exist_ok=True)
 err = open('go_download_failed.txt', 'w+')
 success = open('pdb_chain.txt', 'w+')
-id_list_file = open('../target/id_list.txt', 'w+')
-makedirs('../target', exist_ok=True)
+id_list_file = open(path.join(target_dir, 'id_list-auth_asym_id.txt'), 'w+')
 
+# download MF-GO annotations and convert entity ID to chain ID
 for idx, entity in enumerate(tqdm(entities,
                                    ascii=True,
                                    dynamic_ncols=True)):

@@ -28,7 +28,7 @@ if __name__ == '__main__':
     ####################################################################
 
     # initialize dataset
-    dataset = TNM_8A_all(set_name='similarity_95-8k',
+    dataset = TNM_8A_all(set_name='sim95-ha5k-8k',
                          go_thres=25,
                          entry_type='monomer')
     print(f'Size of dataset: {len(dataset)}')
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     # experiment setup
     exp = Experiment(
         model,
-        name_suffix=f'{dataset.set_name}-{dataset.go_thres}-amd',
+        name_suffix=f'{dataset.set_name}-{dataset.go_thres}',
         rand_seed=69,
         save_dir=self_dir
     )

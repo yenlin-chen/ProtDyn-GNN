@@ -1,34 +1,34 @@
-'''
-Converts list of PDB-entity ID into PDB-chain ID.
-Entities without annotations are discardeds.
-'''
-
 import numpy as np
-from os import path, chdir, getcwd, makedirs
+from os import path, makedirs
 from tqdm import tqdm
-import json
 import requests
+import json
+
+entities = np.loadtxt('pdb_entity.txt', dtype=np.str_)
 
 # define directories
-cwd = getcwd()
-cache_dir = '../../../cache/mfgo'
+cache_dir = path.join('..', '..', '..', 'cache', 'mfgo')
+target_dir = 'target-copy_to_upper_level'
 
 # define url
 url = 'https://www.ebi.ac.uk/pdbe/api/mappings/go/'
 
-# read PDB-entity IDs
-entities = np.loadtxt('pdb_entity.txt', dtype=np.str_)
-
 # open file resources
+makedirs(target_dir, exist_ok=True)
 err = open('go_download_failed.txt', 'w+')
 success = open('pdb_chain.txt', 'w+')
-id_list_file = open('../target/id_list.txt', 'w+')
-makedirs('../target', exist_ok=True)
+id_list_file = open(path.join(target_dir, 'id_list-auth_asym_id.txt'), 'w+')
 
+# download MF-GO annotations and convert entity ID to chain ID
+all_pdbs = np.loadtxt(path.join(cache_dir, '..', 'all_pdbs.txt'),
+                      dtype=np.str_)
 for idx, entity in enumerate(tqdm(entities,
                                    ascii=True,
                                    dynamic_ncols=True)):
     pdbID, entityID = entity.split('_')
+    if pdbID not in all_pdbs:
+        continue # only process those with mfgo downloaded
+
     mfgo_cache = path.join(cache_dir, f'{pdbID}.json')
 
     # check if cache is on disk
