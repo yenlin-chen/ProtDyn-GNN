@@ -21,4 +21,4 @@ with open('./non-exclusive_mfgo_list.json', 'w+') as f:
     json.dump(all_mfgo, f,
               indent=4, separators=(',', ': '), sort_keys=True)
 
-savetxt('./all_pdbs.txt', all_pdbs, fmt='%s')
+savetxt('./non-exclusive_pdb_list.txt', all_pdbs, fmt='%s')
