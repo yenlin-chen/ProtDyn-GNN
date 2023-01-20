@@ -71,11 +71,11 @@ if __name__ == '__main__':
                 filename_suffix='last')
 
     # plot pr_curve for model with best validation accuracy
-    exp.load_params(path.join(exp.save_dir, 'lowest_loss-model.pkl'))
+    exp.load_model(path.join(exp.save_dir, 'lowest_loss-model.pkl'))
     plt.plot_pr(*exp.get_pr_curve(exp.valid_dataloader),
                 filename_suffix='lowest_loss')
 
     # plot pr_curve for model with best validation accuracy
-    exp.load_params(path.join(exp.save_dir, 'best_f1-model.pkl'))
+    exp.load_model(path.join(exp.save_dir, 'best_f1-model.pkl'))
     plt.plot_pr(*exp.get_pr_curve(exp.valid_dataloader),
                 filename_suffix='best_f1')

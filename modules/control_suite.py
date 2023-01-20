@@ -412,11 +412,11 @@ class Experiment():
             # Track best performance, and save the model's state
             if v_loss < lowest_vloss:
                 lowest_vloss = v_loss
-                self.save_params(prefix='lowest_loss')
+                self.save_model(prefix='lowest_loss')
 
             if f1_max > best_f1:
                 best_f1 = f1_max
-                self.save_params(prefix='best_f1')
+                self.save_model(prefix='best_f1')
 
             filename_suffix = (
                 f'epoch_{epoch_number}' if plot_name is None else
@@ -429,7 +429,7 @@ class Experiment():
             self.log(f'Epoch {epoch_number} complete with f1_max={f1_max:.15f}'
                      f' (Wall time: {int(time.time()-epoch_start_time)})')
 
-        self.save_params(prefix='last')
+        self.save_model(prefix='last')
 
         self.f1_max_hist = np.vstack((self.f1_max_hist, f1_max_hist))
         self.plotter.plot_f1_max_hist(self.f1_max_hist)
@@ -557,7 +557,7 @@ class Experiment():
     def hyperparameter_grid_search(self):
         pass
 
-    def save_params(self, prefix=None):
+    def save_model(self, prefix=None):
 
         # save entire model pickled
         torch.save(self.model,
@@ -572,14 +572,14 @@ class Experiment():
 
         self.log(f'Model saved: {prefix}')
 
-    def load_params(self, params_file):
+    def load_model(self, saved_model_file):
 
-        print(f'\nLoading model parameters from file {params_file}...')
+        print(f'\nLoading model from file {saved_model_file}...')
 
-        self.model = torch.load(params_file,
-                                map_location=self.device)#.to(self.device)
+        self.model = torch.load(saved_model_file,
+                                map_location=self.device)
 
-        self.log(f'Model loaded: {params_file}')
+        self.log(f'Model loaded: {saved_model_file}')
 
     def get_mfgo_dict(self, dataloader):
 
