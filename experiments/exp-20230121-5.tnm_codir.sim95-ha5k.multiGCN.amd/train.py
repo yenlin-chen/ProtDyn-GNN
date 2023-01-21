@@ -8,9 +8,9 @@ warnings.filterwarnings("ignore", category=BiopythonDeprecationWarning)
 from sys import path as systemPath
 systemPath.append('../../')
 
-from modules.models import singleGCN
+from modules.models import multiGCN
 from modules.control_suite import Experiment
-from modules.datasets import TNM_8A_all
+from modules.datasets import TNM_8A_11001
 from modules.visualization import Plotter
 
 from os import path
@@ -28,13 +28,14 @@ if __name__ == '__main__':
     ####################################################################
 
     # initialize dataset
-    dataset = TNM_8A_all(set_name='sim95-ha5k-8k',
-                         go_thres=25,
-                         entry_type='monomer')
+    dataset = TNM_8A_11001(set_name='sim95-ha5k',
+                           go_thres=25,
+                           entry_type='monomer')
     print(f'Size of dataset: {len(dataset)}')
 
     # initialize model
-    model = singleGCN(
+    model = multiGCN(
+        n_dims=2,
         dim_node_feat=21, dim_pers_feat=625, dim_out=dataset.n_GO_terms,
         dim_node_hidden=256,
         dim_pers_embedding=512, dim_graph_embedding=512,
@@ -71,11 +72,11 @@ if __name__ == '__main__':
                 filename_suffix='last')
 
     # plot pr_curve for model with best validation accuracy
-    exp.load_model(path.join(exp.save_dir, 'lowest_loss-model.pkl'))
+    exp.load_params(path.join(exp.save_dir, 'lowest_loss-model.pkl'))
     plt.plot_pr(*exp.get_pr_curve(exp.valid_dataloader),
                 filename_suffix='lowest_loss')
 
     # plot pr_curve for model with best validation accuracy
-    exp.load_model(path.join(exp.save_dir, 'best_f1-model.pkl'))
+    exp.load_params(path.join(exp.save_dir, 'best_f1-model.pkl'))
     plt.plot_pr(*exp.get_pr_curve(exp.valid_dataloader),
                 filename_suffix='best_f1')
