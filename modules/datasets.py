@@ -2,7 +2,7 @@
 # coding: utf-8
 
 from sys import path as systemPath
-systemPath.append('../')
+systemPath.append('..')
 
 from preprocessing import (
     preprocessor as pp,
@@ -24,38 +24,38 @@ from tqdm import tqdm
 module_dir = path.dirname(path.realpath(__file__))
 pyg_cache_root = path.join(module_dir, 'pyg_cache')
 
-def rm_contact(data):
-    data.edge_type[:,0] = 0
-    return data
-def rm_codir(data):
-    data.edge_type[:,1] = 0
-    return data
-def rm_coord(data):
-    data.edge_type[:,2] = 0
-    return data
-def rm_deform(data):
-    data.edge_type[:,3] = 0
-    return data
-def rm_pi(data):
-    del data.pi
-    return data
-def rm_blank_edges(data):
-    keep_slice = torch.sum(data.edge_type, 1) > 0
-    # remove unwanted edges and edges info
-    data.edge_index = data.edge_index[:,keep_slice]
-    data.edge_type  = data.edge_type[keep_slice]
-    return data
+# def rm_contact(data):
+#     data.edge_type[:,0] = 0
+#     return data
+# def rm_codir(data):
+#     data.edge_type[:,1] = 0
+#     return data
+# def rm_coord(data):
+#     data.edge_type[:,2] = 0
+#     return data
+# def rm_deform(data):
+#     data.edge_type[:,3] = 0
+#     return data
+# def rm_pi(data):
+#     del data.pi
+#     return data
+# def rm_blank_edges(data):
+#     keep_slice = torch.sum(data.edge_type, 1) > 0
+#     # remove unwanted edges and edges info
+#     data.edge_index = data.edge_index[:,keep_slice]
+#     data.edge_type  = data.edge_type[keep_slice]
+#     return data
 
-transform_list = np.array(
-    [rm_contact, rm_codir, rm_coord, rm_deform, rm_pi, rm_blank_edges],
-    dtype=np.object_
-)
+# transform_list = np.array(
+#     [rm_contact, rm_codir, rm_coord, rm_deform, rm_pi, rm_blank_edges],
+#     dtype=np.object_
+# )
 
 class ProDAR_Dataset(pyg.data.Dataset):
 
     def __init__(self, set_name, go_thres, entry_type, enm_type,
                  cont, codir, coord, deform, pers,
-                 cutoff, n_modes, simplex):
+                 cutoff, n_modes, simplex, transform=None):
 
         '''
         Base class for all datasets used in this project.
@@ -141,8 +141,8 @@ class ProDAR_Dataset(pyg.data.Dataset):
         ################################################################
         # construct the transformation before data access
         ################################################################
-        binary_flags = np.array([cont, codir, coord, deform, pers],
-                                dtype=np.bool_)
+        # binary_flags = np.array([cont, codir, coord, deform, pers],
+        #                         dtype=np.bool_)
         # if binary_flags.all():
         #     transform = None
         # else:
@@ -152,16 +152,16 @@ class ProDAR_Dataset(pyg.data.Dataset):
         #     binary_flags = np.append(binary_flags, not (cont&codir&coord&deform))
         #     transform = Compose(transform_list[binary_flags])
 
-        def transform(data):
-            # only keep the dimensions wanted
-            data.edge_type = data.edge_type[:, binary_flags[:4]]
-            # remove empty edges and edges info
-            keep_slice = torch.sum(data.edge_type, 1) > 0
-            data.edge_index = data.edge_index[:,keep_slice]
-            data.edge_type  = data.edge_type[keep_slice]
-            if not pers:
-                del data.pi
-            return data
+        # def transform(data):
+        #     # only keep the dimensions wanted
+        #     data.edge_type = data.edge_type[:, binary_flags[:4]]
+        #     # remove empty edges and edges info
+        #     keep_slice = torch.sum(data.edge_type, 1) > 0
+        #     data.edge_index = data.edge_index[:,keep_slice]
+        #     data.edge_type  = data.edge_type[keep_slice]
+        #     if not pers:
+        #         del data.pi
+        #     return data
 
         ################################################################
         # Call constuctor of parent class
@@ -206,6 +206,7 @@ class ProDAR_Dataset(pyg.data.Dataset):
     def save_args(self, save_dir):
 
         self.all_args['class_name'] = type(self).__name__
+        del self.all_args['transform']
         with open(path.join(save_dir, 'prodar_dataset-args.json'),
                   'w+') as f_out:
             json.dump(self.all_args, f_out,
@@ -308,6 +309,15 @@ class ProDAR_Dataset(pyg.data.Dataset):
         return torch.load(path.join(self.processed_dir,
                                     self.processed_file_names[idx]))
 
+def transform_ANM_8A_10001_temporary(data):
+    # only keep the dimensions wanted
+    data.edge_type = data.edge_type[:, [True, False]]
+    # remove empty edges and edges info
+    keep_slice = torch.sum(data.edge_type, 1) > 0
+    data.edge_index = data.edge_index[:,keep_slice]
+    data.edge_type  = data.edge_type[keep_slice]
+    return data
+
 class ANM_8A_10001_temporary(ProDAR_Dataset):
 
     def __init__(self, set_name, go_thres, entry_type):
@@ -317,13 +327,16 @@ class ANM_8A_10001_temporary(ProDAR_Dataset):
         enm_type = 'anm'
         cutoff = 8
 
+        transform = transform_ANM_8A_10001_temporary
+
         super().__init__(set_name=set_name, go_thres=go_thres,
                          entry_type=entry_type, enm_type=enm_type,
                          cutoff=cutoff,
                          cont=cont, codir=codir, coord=coord,
                          deform=deform, pers=pers,
                          # gamma=pp.df_gamma, corr_thres=pp.df_corr_thres,
-                         n_modes=pp.df_n_modes, simplex=pp.df_simplex)
+                         n_modes=pp.df_n_modes, simplex=pp.df_simplex,
+                         transform=transform)
 
     @property
     def mfgo_dict(self):
@@ -377,13 +390,16 @@ class ANM_8A_11001_temporary(ProDAR_Dataset):
         enm_type = 'anm'
         cutoff = 8
 
+        transform = None
+
         super().__init__(set_name=set_name, go_thres=go_thres,
                          entry_type=entry_type, enm_type=enm_type,
                          cutoff=cutoff,
                          cont=cont, codir=codir, coord=coord,
                          deform=deform, pers=pers,
                          # gamma=pp.df_gamma, corr_thres=pp.df_corr_thres,
-                         n_modes=pp.df_n_modes, simplex=pp.df_simplex)
+                         n_modes=pp.df_n_modes, simplex=pp.df_simplex,
+                         transform=transform)
 
     @property
     def mfgo_dict(self):
@@ -428,6 +444,15 @@ class ANM_8A_11001_temporary(ProDAR_Dataset):
     def get(self, idx):
         return super().get(idx)
 
+def transform_TNM_8A_10001(data):
+    # only keep the dimensions wanted
+    data.edge_type = data.edge_type[:, [True, False, False, False]]
+    # remove empty edges and edges info
+    keep_slice = torch.sum(data.edge_type, 1) > 0
+    data.edge_index = data.edge_index[:,keep_slice]
+    data.edge_type  = data.edge_type[keep_slice]
+    return data
+
 class TNM_8A_10001(ProDAR_Dataset):
 
     def __init__(self, set_name, go_thres, entry_type):
@@ -437,13 +462,16 @@ class TNM_8A_10001(ProDAR_Dataset):
         enm_type = 'tnm'
         cutoff = 8
 
+        transform = transform_TNM_8A_10001
+
         super().__init__(set_name=set_name, go_thres=go_thres,
                          entry_type=entry_type, enm_type=enm_type,
                          cutoff=cutoff,
                          cont=cont, codir=codir, coord=coord,
                          deform=deform, pers=pers,
                          # gamma=pp.df_gamma, corr_thres=pp.df_corr_thres,
-                         n_modes=pp.df_n_modes, simplex=pp.df_simplex)
+                         n_modes=pp.df_n_modes, simplex=pp.df_simplex,
+                         transform=transform)
 
     @property
     def mfgo_dict(self):
@@ -497,13 +525,16 @@ class TNM_8A_all(ProDAR_Dataset):
         enm_type = 'tnm'
         cutoff = 8
 
+        transform = None
+
         super().__init__(set_name=set_name, go_thres=go_thres,
                          entry_type=entry_type, enm_type=enm_type,
                          cutoff=cutoff,
                          cont=cont, codir=codir, coord=coord,
                          deform=deform, pers=pers,
                          # gamma=pp.df_gamma, corr_thres=pp.df_corr_thres,
-                         n_modes=pp.df_n_modes, simplex=pp.df_simplex)
+                         n_modes=pp.df_n_modes, simplex=pp.df_simplex,
+                         transform=transform)
 
     @property
     def mfgo_dict(self):
@@ -547,6 +578,15 @@ class TNM_8A_all(ProDAR_Dataset):
 
     def get(self, idx):
         return super().get(idx)
+
+def transform_TNM_8A_11001(data):
+    # only keep the dimensions wanted
+    data.edge_type = data.edge_type[:, [True, True, False, False]]
+    # remove empty edges and edges info
+    keep_slice = torch.sum(data.edge_type, 1) > 0
+    data.edge_index = data.edge_index[:,keep_slice]
+    data.edge_type  = data.edge_type[keep_slice]
+    return data
 
 class TNM_8A_11001(ProDAR_Dataset):
 
@@ -557,13 +597,16 @@ class TNM_8A_11001(ProDAR_Dataset):
         enm_type = 'tnm'
         cutoff = 8
 
+        transform = transform_TNM_8A_11001
+
         super().__init__(set_name=set_name, go_thres=go_thres,
                          entry_type=entry_type, enm_type=enm_type,
                          cutoff=cutoff,
                          cont=cont, codir=codir, coord=coord,
                          deform=deform, pers=pers,
                          # gamma=pp.df_gamma, corr_thres=pp.df_corr_thres,
-                         n_modes=pp.df_n_modes, simplex=pp.df_simplex)
+                         n_modes=pp.df_n_modes, simplex=pp.df_simplex,
+                         transform=transform)
 
     @property
     def mfgo_dict(self):
@@ -607,6 +650,15 @@ class TNM_8A_11001(ProDAR_Dataset):
 
     def get(self, idx):
         return super().get(idx)
+
+def transform_TNM_8A_10101(data):
+    # only keep the dimensions wanted
+    data.edge_type = data.edge_type[:, [True, False, True, False]]
+    # remove empty edges and edges info
+    keep_slice = torch.sum(data.edge_type, 1) > 0
+    data.edge_index = data.edge_index[:,keep_slice]
+    data.edge_type  = data.edge_type[keep_slice]
+    return data
 
 class TNM_8A_10101(ProDAR_Dataset):
 
@@ -617,13 +669,16 @@ class TNM_8A_10101(ProDAR_Dataset):
         enm_type = 'tnm'
         cutoff = 8
 
+        transform = transform_TNM_8A_10101
+
         super().__init__(set_name=set_name, go_thres=go_thres,
                          entry_type=entry_type, enm_type=enm_type,
                          cutoff=cutoff,
                          cont=cont, codir=codir, coord=coord,
                          deform=deform, pers=pers,
                          # gamma=pp.df_gamma, corr_thres=pp.df_corr_thres,
-                         n_modes=pp.df_n_modes, simplex=pp.df_simplex)
+                         n_modes=pp.df_n_modes, simplex=pp.df_simplex,
+                         transform=transform)
 
     @property
     def mfgo_dict(self):
@@ -668,6 +723,14 @@ class TNM_8A_10101(ProDAR_Dataset):
     def get(self, idx):
         return super().get(idx)
 
+def transform_TNM_8A_10011(data):
+    # only keep the dimensions wanted
+    data.edge_type = data.edge_type[:, [True, False, False, True]]
+    # remove empty edges and edges info
+    keep_slice = torch.sum(data.edge_type, 1) > 0
+    data.edge_index = data.edge_index[:,keep_slice]
+    data.edge_type  = data.edge_type[keep_slice]
+    return data
 
 class TNM_8A_10011(ProDAR_Dataset):
 
@@ -678,13 +741,16 @@ class TNM_8A_10011(ProDAR_Dataset):
         enm_type = 'tnm'
         cutoff = 8
 
+        transform = transform_TNM_8A_10011
+
         super().__init__(set_name=set_name, go_thres=go_thres,
                          entry_type=entry_type, enm_type=enm_type,
                          cutoff=cutoff,
                          cont=cont, codir=codir, coord=coord,
                          deform=deform, pers=pers,
                          # gamma=pp.df_gamma, corr_thres=pp.df_corr_thres,
-                         n_modes=pp.df_n_modes, simplex=pp.df_simplex)
+                         n_modes=pp.df_n_modes, simplex=pp.df_simplex,
+                         transform=transform)
 
     @property
     def mfgo_dict(self):
@@ -729,6 +795,15 @@ class TNM_8A_10011(ProDAR_Dataset):
     def get(self, idx):
         return super().get(idx)
 
+def transform_TNM_8A_11101(data):
+    # only keep the dimensions wanted
+    data.edge_type = data.edge_type[:, [True, True, True, False]]
+    # remove empty edges and edges info
+    keep_slice = torch.sum(data.edge_type, 1) > 0
+    data.edge_index = data.edge_index[:,keep_slice]
+    data.edge_type  = data.edge_type[keep_slice]
+    return data
+
 class TNM_8A_11101(ProDAR_Dataset):
 
     def __init__(self, set_name, go_thres, entry_type):
@@ -738,13 +813,16 @@ class TNM_8A_11101(ProDAR_Dataset):
         enm_type = 'tnm'
         cutoff = 8
 
+        transform = transform_TNM_8A_11101
+
         super().__init__(set_name=set_name, go_thres=go_thres,
                          entry_type=entry_type, enm_type=enm_type,
                          cutoff=cutoff,
                          cont=cont, codir=codir, coord=coord,
                          deform=deform, pers=pers,
                          # gamma=pp.df_gamma, corr_thres=pp.df_corr_thres,
-                         n_modes=pp.df_n_modes, simplex=pp.df_simplex)
+                         n_modes=pp.df_n_modes, simplex=pp.df_simplex,
+                         transform=transform)
 
     @property
     def mfgo_dict(self):
