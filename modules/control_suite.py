@@ -116,9 +116,8 @@ class Experiment():
         self.log(msg)
 
     def _set_dataloaders(self, train_dataset, valid_dataset,
-                         batch_size, shuffle=False,
-                         seed_worker=seed_worker,
-                         num_workers=cpu_count()):
+                         batch_size, shuffle, num_workers,
+                         seed_worker=seed_worker):
 
         self._set_train_dataloader(train_dataset, batch_size,
                                    shuffle, num_workers, seed_worker)
@@ -443,7 +442,7 @@ class Experiment():
         return loss_acc_f1_hist, f1_max_hist
 
     def train_split(self, n_epochs, train_valid_ratio=0.9, batch_size=64,
-                    plot_freq=25):
+                    plot_freq=25, num_workers=cpu_count()):
 
         # split dataset into training and validation sets
         if float(train_valid_ratio) >= 1.0 and float(train_valid_ratio) > 0.0:
@@ -481,7 +480,8 @@ class Experiment():
         self._set_dataloaders(train_dataset,
                               valid_dataset=valid_dataset,
                               batch_size=batch_size,
-                              shuffle=False)
+                              shuffle=False,
+                              num_workers=num_workers)
 
         # save IDs in both datasets for reference
         dataset_id_list = np.array(self.dataset.id_list)
@@ -497,7 +497,8 @@ class Experiment():
             plot_freq=plot_freq
         )
 
-    def train_kfold(self, n_epochs=300, n_folds=5, batch_size=64):
+    def train_kfold(self, n_epochs=300, n_folds=5, batch_size=64,
+                    num_workers=cpu_count()):
 
         self.log(f'Training with {n_folds} folds with {n_epochs} epochs each')
 
@@ -538,7 +539,8 @@ class Experiment():
             self._set_dataloaders(self.dataset[list(train_idx)],
                                   valid_dataset=self.dataset[list(valid_idx)],
                                   batch_size=batch_size,
-                                  shuffle=False)
+                                  shuffle=False,
+                                  num_workers=num_workers)
 
             # re-initialize parameters
             for layer in self.model.children():
