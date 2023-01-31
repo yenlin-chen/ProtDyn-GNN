@@ -5,15 +5,15 @@ import warnings
 from Bio import BiopythonDeprecationWarning
 warnings.filterwarnings("ignore", category=BiopythonDeprecationWarning)
 
+from os import path
 from sys import path as systemPath
-systemPath.append('../../')
+systemPath.append(path.join('..', '..'))
 
 from modules.models import multiGCN
 from modules.control_suite import Experiment
 from modules.datasets import TNM_8A_11001
 from modules.visualization import Plotter
 
-from os import path
 import torch
 from torch import nn
 # import torchinfo
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     # train
     ####################################################################
 
-    exp.train_split(n_epochs=500, train_valid_ratio=0.9, batch_size=64)
+    exp.train_split(n_epochs=500, train_valid_ratio=0.9, batch_size=128)
 
     ####################################################################
     # plot stuff
@@ -72,11 +72,11 @@ if __name__ == '__main__':
                 filename_suffix='last')
 
     # plot pr_curve for model with best validation accuracy
-    exp.load_params(path.join(exp.save_dir, 'lowest_loss-model.pkl'))
+    exp.load_model(path.join(exp.save_dir, 'lowest_loss-model.pkl'))
     plt.plot_pr(*exp.get_pr_curve(exp.valid_dataloader),
                 filename_suffix='lowest_loss')
 
     # plot pr_curve for model with best validation accuracy
-    exp.load_params(path.join(exp.save_dir, 'best_f1-model.pkl'))
+    exp.load_model(path.join(exp.save_dir, 'best_f1-model.pkl'))
     plt.plot_pr(*exp.get_pr_curve(exp.valid_dataloader),
                 filename_suffix='best_f1')
