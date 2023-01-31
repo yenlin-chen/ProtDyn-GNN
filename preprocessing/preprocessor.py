@@ -853,7 +853,7 @@ class Preprocessor():
         utils.vprint(verbose, 'Cross Correlation...', flush=True)
         codir = prody.calcCrossCorr(anm)
         mask = np.abs(codir) > df_anm_codir_thres
-        codir = np.where(mask, 2, 0) # correlation map is completed here
+        codir = np.where(mask, 1, 0) # correlation map is completed here
 
         # compute adjacency matrix
         comb = cont + codir
