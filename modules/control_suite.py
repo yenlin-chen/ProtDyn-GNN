@@ -44,6 +44,7 @@ class Experiment():
         self.save_dir = save_dir
 
         self.exp_log = path.join(self.save_dir, 'experiment.log')
+        with open(self.exp_log, 'w+').close() # clear log content
 
         # save model arguments
         nn_model.save_args(self.save_dir)

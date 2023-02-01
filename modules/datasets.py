@@ -44,7 +44,7 @@ class ProDAR_Dataset(pyg.data.Dataset):
             print('  Contact map is on.') if cont else None
             print('  Co-directionality coupling is on.') if codir else None
             print('  Coordination coupling is on.') if coord else None
-            print('  Deformation coupling is on.') if codir else None
+            print('  Deformation coupling is on.') if deform else None
             print('  Persistence homology is on.') if pers else None
 
         self.set_name = set_name
