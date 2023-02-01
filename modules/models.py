@@ -24,14 +24,11 @@ class singleGCN(nn.Module):
                  dim_node_hidden,
                  dim_pers_embedding, dim_graph_embedding,
                  dropout_rate,
-                 n_graph_layers,
-                 gradCAM=False):
+                 n_graph_layers):
         '''Instantiate all components with trainable parameters'''
 
         self.all_args = locals()
         del self.all_args['self'], self.all_args['__class__']
-
-        self.dim_node_hidden = dim_node_hidden
 
         super().__init__()
 
@@ -44,9 +41,6 @@ class singleGCN(nn.Module):
             # default arguments to GCNConv (and MessagePassing)
             # aggr='add', improved=False, add_self_loops=True
             self.conv_block.append(conv)
-
-        if gradCAM:
-            pass
 
         # linear layers to process convolutional features
         self.graph_block = nn.Sequential(
@@ -120,15 +114,13 @@ class multiGCN(nn.Module):
                  dim_node_hidden,
                  dim_pers_embedding, dim_graph_embedding,
                  dropout_rate,
-                 n_graph_layers,
-                 gradCAM=False):
+                 n_graph_layers):
         '''Instantiate all components with trainable parameters'''
 
         self.all_args = locals()
         del self.all_args['self'], self.all_args['__class__']
 
         self.n_dims = n_dims
-        self.dim_node_hidden = dim_node_hidden
 
         super().__init__()
 

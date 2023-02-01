@@ -20,36 +20,8 @@ import torch_geometric as pyg
 from torch_geometric.transforms import Compose
 from tqdm import tqdm
 
-
 module_dir = path.dirname(path.realpath(__file__))
 pyg_cache_root = path.join(module_dir, 'pyg_cache')
-
-# def rm_contact(data):
-#     data.edge_type[:,0] = 0
-#     return data
-# def rm_codir(data):
-#     data.edge_type[:,1] = 0
-#     return data
-# def rm_coord(data):
-#     data.edge_type[:,2] = 0
-#     return data
-# def rm_deform(data):
-#     data.edge_type[:,3] = 0
-#     return data
-# def rm_pi(data):
-#     del data.pi
-#     return data
-# def rm_blank_edges(data):
-#     keep_slice = torch.sum(data.edge_type, 1) > 0
-#     # remove unwanted edges and edges info
-#     data.edge_index = data.edge_index[:,keep_slice]
-#     data.edge_type  = data.edge_type[keep_slice]
-#     return data
-
-# transform_list = np.array(
-#     [rm_contact, rm_codir, rm_coord, rm_deform, rm_pi, rm_blank_edges],
-#     dtype=np.object_
-# )
 
 class ProDAR_Dataset(pyg.data.Dataset):
 
@@ -137,31 +109,6 @@ class ProDAR_Dataset(pyg.data.Dataset):
         # run preprocessor if it was not executed before
         else:
             self.download()
-
-        ################################################################
-        # construct the transformation before data access
-        ################################################################
-        # binary_flags = np.array([cont, codir, coord, deform, pers],
-        #                         dtype=np.bool_)
-        # if binary_flags.all():
-        #     transform = None
-        # else:
-        #     # dimension off = transformation on
-        #     binary_flags = np.logical_not(binary_flags)
-        #     # rm_blank_edges not required if all dimensions are on
-        #     binary_flags = np.append(binary_flags, not (cont&codir&coord&deform))
-        #     transform = Compose(transform_list[binary_flags])
-
-        # def transform(data):
-        #     # only keep the dimensions wanted
-        #     data.edge_type = data.edge_type[:, binary_flags[:4]]
-        #     # remove empty edges and edges info
-        #     keep_slice = torch.sum(data.edge_type, 1) > 0
-        #     data.edge_index = data.edge_index[:,keep_slice]
-        #     data.edge_type  = data.edge_type[keep_slice]
-        #     if not pers:
-        #         del data.pi
-        #     return data
 
         ################################################################
         # Call constuctor of parent class
