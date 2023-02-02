@@ -36,7 +36,7 @@ class Experiment():
                         f'{msg}\n')
             f_out.flush()
 
-    def __init__(self, nn_model, save_dir, name_suffix='',
+    def __init__(self, save_dir, name_suffix='',
                  rand_seed=df_rand_seed, device=df_device):
 
         # set up save directory
@@ -44,21 +44,12 @@ class Experiment():
         self.save_dir = save_dir
 
         self.exp_log = path.join(self.save_dir, 'experiment.log')
-        with open(self.exp_log, 'w+').close() # clear log content
-
-        # save model arguments
-        nn_model.save_args(self.save_dir)
-
-        # start class setup
-        self.model = nn.DataParallel(nn_model).to(device)
+        open(self.exp_log, 'w+').close() # clear log content
 
         self.device = device
 
         self.torch_gen = torch.Generator()
         self.torch_gen.manual_seed(rand_seed)
-
-        print(self.model)
-        torchinfo.summary(self.model)
 
         self.f1_max_hist = np.empty((0,5))
         self.loss_acc_f1_hist = np.empty((0,6))
@@ -66,6 +57,18 @@ class Experiment():
         self.plotter = Plotter(self.save_dir)
 
         self.log(f'rand_seed: {rand_seed}')
+
+    def set_model(self, nn_model):
+        nn_model.save_args(self.save_dir)
+        if self.device == torch.device('cuda'):
+            self.model = nn.DataParallel(nn_model).to(self.device)
+        else:
+            self.model = nn_model.to(self.device)
+
+        print(self.model)
+        torchinfo.summary(self.model)
+
+        self.log('Neural network architecture set.')
 
     def _set_learning_rate(self, learning_rate):
         for group in optim.param_groups:
@@ -97,7 +100,7 @@ class Experiment():
            generator=self.torch_gen
         )
 
-        self.train_mfgo_dict = self.get_mfgo_dict(self.train_dataloader)
+        self.train_mfgo_dict = get_mfgo_dict(self.train_dataloader)
 
         msg = (f'Training dataset: {len(self.train_dataloader.dataset)} '
                f'entries')
@@ -224,7 +227,7 @@ class Experiment():
         output_all = []
         data_y_all = []
 
-        mfgo_dict = self.get_mfgo_dict(dataloader)
+        mfgo_dict = get_mfgo_dict(dataloader)
 
         for i, data in enumerate(tqdm(dataloader,
                                       desc=f'    {action_name:10s}',
@@ -412,11 +415,17 @@ class Experiment():
             # Track best performance, and save the model's state
             if v_loss < lowest_vloss:
                 lowest_vloss = v_loss
-                self.save_model(prefix='lowest_loss')
+                self.save_model(prefix='lowest_vloss')
+                if epoch_number > plot_freq:
+                    self.plotter.plot_pr(prec, recall, thres_list,
+                                         filename_suffix='lowest_vloss')
 
             if f1_max > best_f1:
                 best_f1 = f1_max
                 self.save_model(prefix='best_f1')
+                if epoch_number > plot_freq:
+                    self.plotter.plot_pr(prec, recall, thres_list,
+                                         filename_suffix='best_f1')
 
             filename_suffix = (
                 f'epoch_{epoch_number}' if plot_name is None else
@@ -430,11 +439,14 @@ class Experiment():
                      f' (Wall time: {int(time.time()-epoch_start_time)})')
 
         self.save_model(prefix='last')
+        self.plotter.plot_pr(prec, recall, thres_list,
+                             filename_suffix='last')
 
         self.f1_max_hist = np.vstack((self.f1_max_hist, f1_max_hist))
         self.plotter.plot_f1_max_hist(self.f1_max_hist)
 
-        self.loss_acc_f1_hist = np.vstack((self.loss_acc_f1_hist, loss_acc_f1_hist))
+        self.loss_acc_f1_hist = np.vstack((self.loss_acc_f1_hist,
+                                           loss_acc_f1_hist))
         self.plotter.plot_loss_acc_f1_hist(self.loss_acc_f1_hist)
 
         self.log(f'Finish training for {n_epochs} epochs '
@@ -442,8 +454,8 @@ class Experiment():
 
         return loss_acc_f1_hist, f1_max_hist
 
-    def train_split(self, n_epochs, train_valid_ratio=0.9, batch_size=64,
-                    plot_freq=25, num_workers=cpu_count()):
+    def split_train_valid(self, train_valid_ratio=0.9, batch_size=64,
+                          num_workers=cpu_count()):
 
         # split dataset into training and validation sets
         if float(train_valid_ratio) >= 1.0 and float(train_valid_ratio) > 0.0:
@@ -458,16 +470,11 @@ class Experiment():
         self.log(msg)
 
         n_total = len(self.dataset)
-        if n_total > batch_size:
-            n_train_data = int(
-                n_total*train_valid_ratio - (n_total*train_valid_ratio)%batch_size
-            )
-        else:
-            n_train_data = int(n_total*train_valid_ratio)
+        n_train_data = int(n_total*train_valid_ratio)
         n_valid_data = n_total - n_train_data
 
         #### TODO ####
-        # ensure that every MF-GO appears in the training set at least
+        # ensure that every MF-GO appeaFrs in the training set at least
         # once (currently it is possible that some MF-GO is only present
         # in the validation set, or vice versa)
         ##############
@@ -490,6 +497,11 @@ class Experiment():
                    dataset_id_list[train_dataset.indices], fmt='%s')
         np.savetxt(path.join(self.save_dir, 'valid-id_list.txt'),
                    dataset_id_list[valid_dataset.indices], fmt='%s')
+
+    def train_split(self, n_epochs, train_valid_ratio=0.9, batch_size=64,
+                    plot_freq=25, num_workers=cpu_count()):
+
+        self.split_train_valid(train_valid_ratio, batch_size, num_workers)
 
         train_hist_file = path.join(self.save_dir, 'training_hist.txt')
         loss_acc_f1_hist, f1_max_hist = self._train_valid_loop(
@@ -584,9 +596,9 @@ class Experiment():
 
         self.log(f'Model loaded: {saved_model_file}')
 
-    def get_mfgo_dict(self, dataloader):
+def get_mfgo_dict(dataloader):
 
-        if isinstance(dataloader.dataset, Subset):
-            return dataloader.dataset.dataset.mfgo_dict
-        else:
-            return dataloader.dataset.mfgo_dict
+    if isinstance(dataloader.dataset, Subset):
+        return dataloader.dataset.dataset.mfgo_dict
+    else:
+        return dataloader.dataset.mfgo_dict

@@ -89,6 +89,9 @@ class ProDAR_Dataset(pyg.data.Dataset):
         self.deform = deform
         self.pers = pers
 
+        self.n_graph_dims = sum([cont, codir, coord, deform])
+        print(f'  Number of graph dimensions: {self.n_graph_dims}')
+
         self.cutoff = cutoff
         # self.gamma = gamma
         # self.corr_thres = corr_thres
