@@ -23,6 +23,10 @@ from tqdm import tqdm
 module_dir = path.dirname(path.realpath(__file__))
 pyg_cache_root = path.join(module_dir, 'pyg_cache')
 
+def remove_PI(data):
+    del data.pi
+    return data
+
 class ProDAR_Dataset(pyg.data.Dataset):
 
     def __init__(self, set_name, go_thres, entry_type, enm_type,
@@ -112,6 +116,15 @@ class ProDAR_Dataset(pyg.data.Dataset):
         # run preprocessor if it was not executed before
         else:
             self.download()
+
+        ################################################################
+        # set up transform
+        ################################################################
+        # if pers:
+        #     if transform is not None:
+        #         transform = Compose([transform, remove_PI])
+        #     else:
+        #         transform = remove_PI
 
         ################################################################
         # Call constuctor of parent class
@@ -260,7 +273,7 @@ class ProDAR_Dataset(pyg.data.Dataset):
         return torch.load(path.join(self.processed_dir,
                                     self.processed_file_names[idx]))
 
-def transform_ANM_8A_10001_temporary(data):
+def transform_ANM_8A_1000(data):
     # only keep the dimensions wanted
     data.edge_type = data.edge_type[:, [True, False]]
     # remove empty edges and edges info
@@ -269,7 +282,7 @@ def transform_ANM_8A_10001_temporary(data):
     data.edge_type  = data.edge_type[keep_slice]
     return data
 
-class ANM_8A_10001_temporary(ProDAR_Dataset):
+class ANM_8A_10001(ProDAR_Dataset):
 
     def __init__(self, set_name, go_thres, entry_type):
 
@@ -278,7 +291,7 @@ class ANM_8A_10001_temporary(ProDAR_Dataset):
         enm_type = 'anm'
         cutoff = 8
 
-        transform = transform_ANM_8A_10001_temporary
+        transform = transform_ANM_8A_1000
 
         super().__init__(set_name=set_name, go_thres=go_thres,
                          entry_type=entry_type, enm_type=enm_type,
@@ -332,7 +345,70 @@ class ANM_8A_10001_temporary(ProDAR_Dataset):
     def get(self, idx):
         return super().get(idx)
 
-class ANM_8A_11001_temporary(ProDAR_Dataset):
+class ANM_8A_10000(ProDAR_Dataset):
+
+    def __init__(self, set_name, go_thres, entry_type):
+
+        cont, codir, coord, deform, pers = True, False, False, False, False
+
+        enm_type = 'anm'
+        cutoff = 8
+
+        transform = transform_ANM_8A_1000
+
+        super().__init__(set_name=set_name, go_thres=go_thres,
+                         entry_type=entry_type, enm_type=enm_type,
+                         cutoff=cutoff,
+                         cont=cont, codir=codir, coord=coord,
+                         deform=deform, pers=pers,
+                         # gamma=pp.df_gamma, corr_thres=pp.df_corr_thres,
+                         n_modes=pp.df_n_modes, simplex=pp.df_simplex,
+                         transform=transform)
+
+    @property
+    def mfgo_dict(self):
+        return super().mfgo_dict
+
+    @property
+    def id_list(self):
+        return super().id_list
+
+    @property
+    def pos_weight(self):
+        return super().pos_weight
+
+    @property
+    def raw_dir(self): # -> str:
+        return super().raw_dir
+
+    @property
+    def processed_dir(self): # -> str:
+        return super().processed_dir
+
+    @property
+    def raw_file_names(self):
+        return super().raw_file_names
+
+    @property
+    def processed_file_names(self):
+        return super().processed_file_names
+
+    def save_args(self, save_dir):
+        return super().save_args(save_dir)
+
+    def download(self):
+        return super().download()
+
+    def process(self):
+        return super().process()
+
+    def len(self):
+        return super().len()
+
+    def get(self, idx):
+        return super().get(idx)
+
+class ANM_8A_11001(ProDAR_Dataset):
 
     def __init__(self, set_name, go_thres, entry_type):
 
@@ -395,7 +471,70 @@ class ANM_8A_11001_temporary(ProDAR_Dataset):
     def get(self, idx):
         return super().get(idx)
 
-def transform_TNM_8A_10001(data):
+class ANM_8A_11000(ProDAR_Dataset):
+
+    def __init__(self, set_name, go_thres, entry_type):
+
+        cont, codir, coord, deform, pers = True, True, False, False, False
+
+        enm_type = 'anm'
+        cutoff = 8
+
+        transform = None
+
+        super().__init__(set_name=set_name, go_thres=go_thres,
+                         entry_type=entry_type, enm_type=enm_type,
+                         cutoff=cutoff,
+                         cont=cont, codir=codir, coord=coord,
+                         deform=deform, pers=pers,
+                         # gamma=pp.df_gamma, corr_thres=pp.df_corr_thres,
+                         n_modes=pp.df_n_modes, simplex=pp.df_simplex,
+                         transform=transform)
+
+    @property
+    def mfgo_dict(self):
+        return super().mfgo_dict
+
+    @property
+    def id_list(self):
+        return super().id_list
+
+    @property
+    def pos_weight(self):
+        return super().pos_weight
+
+    @property
+    def raw_dir(self): # -> str:
+        return super().raw_dir
+
+    @property
+    def processed_dir(self): # -> str:
+        return super().processed_dir
+
+    @property
+    def raw_file_names(self):
+        return super().raw_file_names
+
+    @property
+    def processed_file_names(self):
+        return super().processed_file_names
+
+    def save_args(self, save_dir):
+        return super().save_args(save_dir)
+
+    def download(self):
+        return super().download()
+
+    def process(self):
+        return super().process()
+
+    def len(self):
+        return super().len()
+
+    def get(self, idx):
+        return super().get(idx)
+
+def transform_TNM_8A_1000(data):
     # only keep the dimensions wanted
     data.edge_type = data.edge_type[:, [True, False, False, False]]
     # remove empty edges and edges info
@@ -413,7 +552,133 @@ class TNM_8A_10001(ProDAR_Dataset):
         enm_type = 'tnm'
         cutoff = 8
 
-        transform = transform_TNM_8A_10001
+        transform = transform_TNM_8A_1000
+
+        super().__init__(set_name=set_name, go_thres=go_thres,
+                         entry_type=entry_type, enm_type=enm_type,
+                         cutoff=cutoff,
+                         cont=cont, codir=codir, coord=coord,
+                         deform=deform, pers=pers,
+                         # gamma=pp.df_gamma, corr_thres=pp.df_corr_thres,
+                         n_modes=pp.df_n_modes, simplex=pp.df_simplex,
+                         transform=transform)
+
+    @property
+    def mfgo_dict(self):
+        return super().mfgo_dict
+
+    @property
+    def id_list(self):
+        return super().id_list
+
+    @property
+    def pos_weight(self):
+        return super().pos_weight
+
+    @property
+    def raw_dir(self): # -> str:
+        return super().raw_dir
+
+    @property
+    def processed_dir(self): # -> str:
+        return super().processed_dir
+
+    @property
+    def raw_file_names(self):
+        return super().raw_file_names
+
+    @property
+    def processed_file_names(self):
+        return super().processed_file_names
+
+    def save_args(self, save_dir):
+        return super().save_args(save_dir)
+
+    def download(self):
+        return super().download()
+
+    def process(self):
+        return super().process()
+
+    def len(self):
+        return super().len()
+
+    def get(self, idx):
+        return super().get(idx)
+
+class TNM_8A_10000(ProDAR_Dataset):
+
+    def __init__(self, set_name, go_thres, entry_type):
+
+        cont, codir, coord, deform, pers = True, False, False, False, False
+
+        enm_type = 'tnm'
+        cutoff = 8
+
+        transform = transform_TNM_8A_1000
+
+        super().__init__(set_name=set_name, go_thres=go_thres,
+                         entry_type=entry_type, enm_type=enm_type,
+                         cutoff=cutoff,
+                         cont=cont, codir=codir, coord=coord,
+                         deform=deform, pers=pers,
+                         # gamma=pp.df_gamma, corr_thres=pp.df_corr_thres,
+                         n_modes=pp.df_n_modes, simplex=pp.df_simplex,
+                         transform=transform)
+
+    @property
+    def mfgo_dict(self):
+        return super().mfgo_dict
+
+    @property
+    def id_list(self):
+        return super().id_list
+
+    @property
+    def pos_weight(self):
+        return super().pos_weight
+
+    @property
+    def raw_dir(self): # -> str:
+        return super().raw_dir
+
+    @property
+    def processed_dir(self): # -> str:
+        return super().processed_dir
+
+    @property
+    def raw_file_names(self):
+        return super().raw_file_names
+
+    @property
+    def processed_file_names(self):
+        return super().processed_file_names
+
+    def save_args(self, save_dir):
+        return super().save_args(save_dir)
+
+    def download(self):
+        return super().download()
+
+    def process(self):
+        return super().process()
+
+    def len(self):
+        return super().len()
+
+    def get(self, idx):
+        return super().get(idx)
+
+class TNM_8A_11110(ProDAR_Dataset):
+
+    def __init__(self, set_name, go_thres, entry_type):
+
+        cont, codir, coord, deform, pers = True, True, True, True, False
+
+        enm_type = 'tnm'
+        cutoff = 8
+
+        transform = None
 
         super().__init__(set_name=set_name, go_thres=go_thres,
                          entry_type=entry_type, enm_type=enm_type,
@@ -530,7 +795,7 @@ class TNM_8A_all(ProDAR_Dataset):
     def get(self, idx):
         return super().get(idx)
 
-def transform_TNM_8A_11001(data):
+def transform_TNM_8A_1100(data):
     # only keep the dimensions wanted
     data.edge_type = data.edge_type[:, [True, True, False, False]]
     # remove empty edges and edges info
@@ -548,7 +813,7 @@ class TNM_8A_11001(ProDAR_Dataset):
         enm_type = 'tnm'
         cutoff = 8
 
-        transform = transform_TNM_8A_11001
+        transform = transform_TNM_8A_1100
 
         super().__init__(set_name=set_name, go_thres=go_thres,
                          entry_type=entry_type, enm_type=enm_type,
@@ -602,7 +867,70 @@ class TNM_8A_11001(ProDAR_Dataset):
     def get(self, idx):
         return super().get(idx)
 
-def transform_TNM_8A_10101(data):
+class TNM_8A_11000(ProDAR_Dataset):
+
+    def __init__(self, set_name, go_thres, entry_type):
+
+        cont, codir, coord, deform, pers = True, True, False, False, False
+
+        enm_type = 'tnm'
+        cutoff = 8
+
+        transform = transform_TNM_8A_1100
+
+        super().__init__(set_name=set_name, go_thres=go_thres,
+                         entry_type=entry_type, enm_type=enm_type,
+                         cutoff=cutoff,
+                         cont=cont, codir=codir, coord=coord,
+                         deform=deform, pers=pers,
+                         # gamma=pp.df_gamma, corr_thres=pp.df_corr_thres,
+                         n_modes=pp.df_n_modes, simplex=pp.df_simplex,
+                         transform=transform)
+
+    @property
+    def mfgo_dict(self):
+        return super().mfgo_dict
+
+    @property
+    def id_list(self):
+        return super().id_list
+
+    @property
+    def pos_weight(self):
+        return super().pos_weight
+
+    @property
+    def raw_dir(self): # -> str:
+        return super().raw_dir
+
+    @property
+    def processed_dir(self): # -> str:
+        return super().processed_dir
+
+    @property
+    def raw_file_names(self):
+        return super().raw_file_names
+
+    @property
+    def processed_file_names(self):
+        return super().processed_file_names
+
+    def save_args(self, save_dir):
+        return super().save_args(save_dir)
+
+    def download(self):
+        return super().download()
+
+    def process(self):
+        return super().process()
+
+    def len(self):
+        return super().len()
+
+    def get(self, idx):
+        return super().get(idx)
+
+def transform_TNM_8A_10100(data):
     # only keep the dimensions wanted
     data.edge_type = data.edge_type[:, [True, False, True, False]]
     # remove empty edges and edges info
@@ -620,7 +948,7 @@ class TNM_8A_10101(ProDAR_Dataset):
         enm_type = 'tnm'
         cutoff = 8
 
-        transform = transform_TNM_8A_10101
+        transform = transform_TNM_8A_10100
 
         super().__init__(set_name=set_name, go_thres=go_thres,
                          entry_type=entry_type, enm_type=enm_type,
@@ -674,7 +1002,70 @@ class TNM_8A_10101(ProDAR_Dataset):
     def get(self, idx):
         return super().get(idx)
 
-def transform_TNM_8A_10011(data):
+class TNM_8A_10100(ProDAR_Dataset):
+
+    def __init__(self, set_name, go_thres, entry_type):
+
+        cont, codir, coord, deform, pers = True, False, True, False, False
+
+        enm_type = 'tnm'
+        cutoff = 8
+
+        transform = transform_TNM_8A_10100
+
+        super().__init__(set_name=set_name, go_thres=go_thres,
+                         entry_type=entry_type, enm_type=enm_type,
+                         cutoff=cutoff,
+                         cont=cont, codir=codir, coord=coord,
+                         deform=deform, pers=pers,
+                         # gamma=pp.df_gamma, corr_thres=pp.df_corr_thres,
+                         n_modes=pp.df_n_modes, simplex=pp.df_simplex,
+                         transform=transform)
+
+    @property
+    def mfgo_dict(self):
+        return super().mfgo_dict
+
+    @property
+    def id_list(self):
+        return super().id_list
+
+    @property
+    def pos_weight(self):
+        return super().pos_weight
+
+    @property
+    def raw_dir(self): # -> str:
+        return super().raw_dir
+
+    @property
+    def processed_dir(self): # -> str:
+        return super().processed_dir
+
+    @property
+    def raw_file_names(self):
+        return super().raw_file_names
+
+    @property
+    def processed_file_names(self):
+        return super().processed_file_names
+
+    def save_args(self, save_dir):
+        return super().save_args(save_dir)
+
+    def download(self):
+        return super().download()
+
+    def process(self):
+        return super().process()
+
+    def len(self):
+        return super().len()
+
+    def get(self, idx):
+        return super().get(idx)
+
+def transform_TNM_8A_1001(data):
     # only keep the dimensions wanted
     data.edge_type = data.edge_type[:, [True, False, False, True]]
     # remove empty edges and edges info
@@ -692,7 +1083,7 @@ class TNM_8A_10011(ProDAR_Dataset):
         enm_type = 'tnm'
         cutoff = 8
 
-        transform = transform_TNM_8A_10011
+        transform = transform_TNM_8A_1001
 
         super().__init__(set_name=set_name, go_thres=go_thres,
                          entry_type=entry_type, enm_type=enm_type,
@@ -746,7 +1137,70 @@ class TNM_8A_10011(ProDAR_Dataset):
     def get(self, idx):
         return super().get(idx)
 
-def transform_TNM_8A_11101(data):
+class TNM_8A_10010(ProDAR_Dataset):
+
+    def __init__(self, set_name, go_thres, entry_type):
+
+        cont, codir, coord, deform, pers = True, False, False, True, False
+
+        enm_type = 'tnm'
+        cutoff = 8
+
+        transform = transform_TNM_8A_1001
+
+        super().__init__(set_name=set_name, go_thres=go_thres,
+                         entry_type=entry_type, enm_type=enm_type,
+                         cutoff=cutoff,
+                         cont=cont, codir=codir, coord=coord,
+                         deform=deform, pers=pers,
+                         # gamma=pp.df_gamma, corr_thres=pp.df_corr_thres,
+                         n_modes=pp.df_n_modes, simplex=pp.df_simplex,
+                         transform=transform)
+
+    @property
+    def mfgo_dict(self):
+        return super().mfgo_dict
+
+    @property
+    def id_list(self):
+        return super().id_list
+
+    @property
+    def pos_weight(self):
+        return super().pos_weight
+
+    @property
+    def raw_dir(self): # -> str:
+        return super().raw_dir
+
+    @property
+    def processed_dir(self): # -> str:
+        return super().processed_dir
+
+    @property
+    def raw_file_names(self):
+        return super().raw_file_names
+
+    @property
+    def processed_file_names(self):
+        return super().processed_file_names
+
+    def save_args(self, save_dir):
+        return super().save_args(save_dir)
+
+    def download(self):
+        return super().download()
+
+    def process(self):
+        return super().process()
+
+    def len(self):
+        return super().len()
+
+    def get(self, idx):
+        return super().get(idx)
+
+def transform_TNM_8A_1110(data):
     # only keep the dimensions wanted
     data.edge_type = data.edge_type[:, [True, True, True, False]]
     # remove empty edges and edges info
@@ -764,7 +1218,70 @@ class TNM_8A_11101(ProDAR_Dataset):
         enm_type = 'tnm'
         cutoff = 8
 
-        transform = transform_TNM_8A_11101
+        transform = transform_TNM_8A_1110
+
+        super().__init__(set_name=set_name, go_thres=go_thres,
+                         entry_type=entry_type, enm_type=enm_type,
+                         cutoff=cutoff,
+                         cont=cont, codir=codir, coord=coord,
+                         deform=deform, pers=pers,
+                         # gamma=pp.df_gamma, corr_thres=pp.df_corr_thres,
+                         n_modes=pp.df_n_modes, simplex=pp.df_simplex,
+                         transform=transform)
+
+    @property
+    def mfgo_dict(self):
+        return super().mfgo_dict
+
+    @property
+    def id_list(self):
+        return super().id_list
+
+    @property
+    def pos_weight(self):
+        return super().pos_weight
+
+    @property
+    def raw_dir(self): # -> str:
+        return super().raw_dir
+
+    @property
+    def processed_dir(self): # -> str:
+        return super().processed_dir
+
+    @property
+    def raw_file_names(self):
+        return super().raw_file_names
+
+    @property
+    def processed_file_names(self):
+        return super().processed_file_names
+
+    def save_args(self, save_dir):
+        return super().save_args(save_dir)
+
+    def download(self):
+        return super().download()
+
+    def process(self):
+        return super().process()
+
+    def len(self):
+        return super().len()
+
+    def get(self, idx):
+        return super().get(idx)
+
+class TNM_8A_11100(ProDAR_Dataset):
+
+    def __init__(self, set_name, go_thres, entry_type):
+
+        cont, codir, coord, deform, pers = True, True, True, False, False
+
+        enm_type = 'tnm'
+        cutoff = 8
+
+        transform = transform_TNM_8A_1110
 
         super().__init__(set_name=set_name, go_thres=go_thres,
                          entry_type=entry_type, enm_type=enm_type,
