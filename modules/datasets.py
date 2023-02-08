@@ -117,7 +117,7 @@ class ProDAR_Dataset(pyg.data.Dataset):
         # Call constuctor of parent class
         ################################################################
         super().__init__(self.raw_graph_dir, transform, None, None)
-        print('Dataset Initialization Complete\n')
+        print('Dataset Initialized\n')
 
     @property
     def mfgo_dict(self):
@@ -195,6 +195,8 @@ class ProDAR_Dataset(pyg.data.Dataset):
                                        for e in v]).size
 
     def process(self):
+        n_unique_residues = np.unique(list(res3_dict.values()))
+
         for idx, ID in enumerate(tqdm(self.id_list,
                                       desc='  Processing data (PyG)',
                                       ascii=True, dynamic_ncols=True)):
@@ -212,7 +214,6 @@ class ProDAR_Dataset(pyg.data.Dataset):
             # residue type
             ############################################################
 
-            n_unique_residues = np.unique(list(res3_dict.values()))
             x = np.zeros((len(data.resname), len(n_unique_residues)),
                          dtype=np.int_)
 
@@ -272,7 +273,7 @@ class ANM_8A_10001_temporary(ProDAR_Dataset):
 
     def __init__(self, set_name, go_thres, entry_type):
 
-        cont, codir, coord, deform, pers = True, False, True, True, True
+        cont, codir, coord, deform, pers = True, False, False, False, True
 
         enm_type = 'anm'
         cutoff = 8
@@ -335,7 +336,7 @@ class ANM_8A_11001_temporary(ProDAR_Dataset):
 
     def __init__(self, set_name, go_thres, entry_type):
 
-        cont, codir, coord, deform, pers = True, True, True, True, True
+        cont, codir, coord, deform, pers = True, True, False, False, True
 
         enm_type = 'anm'
         cutoff = 8

@@ -100,7 +100,7 @@ class Experiment():
            generator=self.torch_gen
         )
 
-        self.train_mfgo_dict = get_mfgo_dict(self.train_dataloader)
+        self.train_mfgo_dict = get_mfgo_dict(self.train_dataloader.dataset)
 
         msg = (f'Training dataset: {len(self.train_dataloader.dataset)} '
                f'entries')
@@ -227,7 +227,7 @@ class Experiment():
         output_all = []
         data_y_all = []
 
-        mfgo_dict = get_mfgo_dict(dataloader)
+        mfgo_dict = get_mfgo_dict(dataloader.dataset)
 
         for i, data in enumerate(tqdm(dataloader,
                                       desc=f'    {action_name:10s}',
@@ -416,16 +416,15 @@ class Experiment():
             if v_loss < lowest_vloss:
                 lowest_vloss = v_loss
                 self.save_model(prefix='lowest_vloss')
-                if epoch_number > plot_freq:
-                    self.plotter.plot_pr(prec, recall, thres_list,
-                                         filename_suffix='lowest_vloss')
+                self.plotter.plot_pr(prec, recall, thres_list,
+                                     filename_suffix='lowest_vloss')
 
             if f1_max > best_f1:
                 best_f1 = f1_max
+                self.model.f1_max_thres = thres_list[f1_max_idx]
                 self.save_model(prefix='best_f1')
-                if epoch_number > plot_freq:
-                    self.plotter.plot_pr(prec, recall, thres_list,
-                                         filename_suffix='best_f1')
+                self.plotter.plot_pr(prec, recall, thres_list,
+                                     filename_suffix='best_f1')
 
             filename_suffix = (
                 f'epoch_{epoch_number}' if plot_name is None else
@@ -596,9 +595,9 @@ class Experiment():
 
         self.log(f'Model loaded: {saved_model_file}')
 
-def get_mfgo_dict(dataloader):
+def get_mfgo_dict(dataset):
 
-    if isinstance(dataloader.dataset, Subset):
-        return dataloader.dataset.dataset.mfgo_dict
+    if isinstance(dataset, Subset):
+        return dataset.dataset.mfgo_dict
     else:
-        return dataloader.dataset.mfgo_dict
+        return dataset.mfgo_dict
