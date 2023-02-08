@@ -40,14 +40,18 @@ df_pi_root = path.join(module_dir, 'data', 'persistence_images')
 df_labels_root = path.join(module_dir, 'labels')
 
 # save download time by saving a copy of downloaded raw data
-mfgo_cache_dir = path.join(module_dir, 'cache', 'mfgo')
-cif_cache_dir = path.join(module_dir, 'cache', 'cif')
-pdb_cache_dir = path.join(module_dir, 'cache', 'pdb')
-tnm_cache_dir = path.join(module_dir, 'cache', 'tnm')
+cache_dir = path.join(module_dir, 'cache')
+mfgo_cache_dir = path.join(cache_dir, 'mfgo')
+cif_cache_dir = path.join(cache_dir, 'cif')
+pdb_cache_dir = path.join(cache_dir, 'pdb')
+tnm_cache_dir = path.join(cache_dir, 'tnm')
+entity_cache_dir = path.join(cache_dir, 'rcsb-api', 'polymer_entity')
+instance_cache_dir = path.join(cache_dir, 'rcsb-api',
+                               'polymer_entity_instance')
 
 # df_payload_filename = 'payload.json'
 # df_payload_template = 'payload-template.json'
-df_id_list_filename = 'id_list-auth_asym_id.txt'
+df_id_list_filename = 'id_list-asym_id.txt'
 df_mfgo_cnt_filename = 'mfgo-count.txt'
 df_mfgo_filename = 'id-mfgo.json'
 df_noMFGO_filename = 'id-without_MFGO.txt'
@@ -59,14 +63,19 @@ df_failed_pdb_filename = 'pdb-failed.txt'
 
 tnm_setup_filename = '{}{}_MIN{:.1f}_ALL_PHIPSIPSI'
 
-tnm_setup_folder = 'tnm-cutoff_{}A'
+tnm_setup_folder = 'tnm-cutoff_{}A-codir_only'
 anm_setup_folder = 'anm-cutoff_{}A-nModes_{}-codir_only'
 # md_setup_folder = 'md'
 pi_setup_folder = 'simplex_{}'
 go_thres_folder = 'GOthres_{}'
 
+url_entity = 'https://data.rcsb.org/rest/v1/core/polymer_entity'
+url_instance = 'https://data.rcsb.org/rest/v1/core/polymer_entity_instance'
+
 # makedirs(df_graph_root, exist_ok=True)
 # makedirs(df_pi_root, exist_ok=True)
+
+df_GET_timeout = 5
 
 # default parameters
 df_atomselect = 'calpha'
@@ -77,7 +86,7 @@ df_pi_size = [25, 25]
 
 df_cutoff = 8
 df_gamma = 1
-df_anm_codir_thres = 0.5
+df_codir_thres = 0.5
 df_n_modes = 20
 
 ########################################################################
@@ -86,12 +95,18 @@ df_n_modes = 20
 download_exe = path.join(module_dir, 'batch_download.sh')
 tnm_exe = path.join(module_dir, 'tnm')
 
+def format_pdb_chain_id(pdb_id, chain_id):
+    return f'{pdb_id.upper()}-{chain_id}'
+
+def format_pdb_entity_id(pdb_id, entity_id):
+    return f'{pdb_id.upper()}_{entity_id}'
+
 class Preprocessor():
 
     def __init__(self, set_name, entry_type, go_thres=25, verbose=True):
 
         '''
-        Directory manager for data preprocesing. Also provides the
+        Directory manager for data preprocessing. Also provides the
         functions required to build ProDAR datasets.
 
         Caches and logs are maintained to save significant time on
@@ -154,6 +169,8 @@ class Preprocessor():
         makedirs(cif_cache_dir, exist_ok=True)
         makedirs(pdb_cache_dir, exist_ok=True)
         makedirs(tnm_cache_dir, exist_ok=True)
+        makedirs(entity_cache_dir, exist_ok=True)
+        makedirs(instance_cache_dir, exist_ok=True)
         makedirs(self.log_dir, exist_ok=True)
 
         ################################################################
@@ -166,14 +183,74 @@ class Preprocessor():
 
         self.go_url = 'https://www.ebi.ac.uk/pdbe/api/mappings/go/'
 
-        ################################################################
-        # other stuff
-        ################################################################
-        # save a list of resnames encountered in the dataset
-        self.all_resnames = []
+    def _get_instance_info(self, pdb_id, chain_id_rcsb, redownload,
+                           verbose=None):
 
-    def _get_mfgo_for_pdb(self, ID, redownload=False,
-                          request_timeout=10, verbose=None):
+        '''
+        Get various IDs of the instance, e.g. entity_id, auth_asym_id
+        '''
+
+        instance_id = format_pdb_chain_id(pdb_id, chain_id_rcsb)
+        instance_cache = path.join(instance_cache_dir, f'{instance_id}.json')
+
+        redownload_msg = False
+        if redownload and path.exists(instance_cache):
+            remove_file(instance_cache)
+            redownload_msg = True
+
+        # access instance data from RCSB
+        if path.exists(instance_cache): # check if local copy exists
+            msg = 'Instance data loaded from disk'
+            with open(instance_cache, 'r') as f_in:
+                data = json.load(f_in)
+        else:
+            url_endpoint = f'{url_instance}/{pdb_id}/{chain_id_rcsb}'
+            try:
+                retrieved = requests.get(url_endpoint, timeout=df_GET_timeout)
+            except request.Timeout:
+                msg = 'Timeout while GET request for instance data'
+                utils.vprint(verbose, msg)
+                return None, msg
+
+            if retrieved.status_code != 200:
+                msg = (f'GET request for instance data failed with code '
+                       f'{retrieved.status_code}')
+                utils.vprint(verbose, msg)
+                return None, msg
+
+            msg = ('Instance data re-retrieved from RCSB' if redownload_msg
+                   else 'Instance data retrieved from RCSB')
+            data = retrieved.json()
+            # save a local copy
+            with open(instance_cache, 'w+') as f_out:
+                json.dump(data, f_out,
+                          indent=4, separators=(',', ': '), sort_keys=False)
+
+        return data['rcsb_polymer_entity_instance_container_identifiers'], msg
+
+    def chain_id_rcsb2auth(self, pdb_id, chain_id_rcsb, redownload,
+                           verbose=None):
+
+        ids, msg = self._get_instance_info(pdb_id, chain_id_rcsb, redownload,
+                                           verbose)
+        if ids is None:
+            return None, msg
+
+        chain_id_auth = ids['auth_asym_id']
+        return chain_id_auth, msg
+
+    def chain_id_rcsb2entity_id(self, pdb_id, chain_id_rcsb,
+                                redownload, verbose=None):
+
+        ids, msg = self._get_instance_info(pdb_id, chain_id_rcsb, redownload,
+                                           verbose)
+        if ids is None:
+            return None, msg
+
+        entity_id = ids['entity_id']
+        return entity_id, msg
+
+    def _get_mfgo(self, pdb_id, chain_id_rcsb, redownload=False, verbose=None):
 
         '''
         Retrieves the MF-GO annotation for the given PDB entry.
@@ -181,60 +258,77 @@ class Preprocessor():
         explaining the reason of success or failure of the process.
         '''
 
+        if chain_id_rcsb is None:
+            raise NotImplementedError(
+                'Finding MF-GO terms for multimers (RCSB entries) are '
+                'currently unavailable'
+            )
+
+        instance_id = format_pdb_chain_id(pdb_id, chain_id_rcsb)
+
         verbose = self.verbose if verbose is None else verbose
-        utils.vprint(verbose, f'Retrieving MF-GO for \'{ID}\'...',
+        utils.vprint(verbose, f'Retrieving MF-GO for \'{instance_id}\'...',
                      end='', flush=True)
 
-        filename = utils.id_to_filename(ID)
-        mfgo_cache = path.join(mfgo_cache_dir, f'{filename}.json')
+        entity_id, _ = self.chain_id_rcsb2entity_id(pdb_id, chain_id_rcsb,
+                                                    redownload, verbose)
+        entity_cache = path.join(entity_cache_dir,
+                             f'{format_pdb_entity_id(pdb_id, entity_id)}.json')
 
         redownload_msg = False
-        if path.exists(mfgo_cache):
-            if redownload:
-                remove_file(mfgo_cache)
-                # change the output for rebuilt entries
-                redownload_msg = True
-            else:
-                msg = 'Annotations found on disk'
-                with open(mfgo_cache, 'r') as f_in:
-                    go_dict = json.load(f_in)
-                mfgo = {}
-                for code in go_dict:
-                    if go_dict[code]['category'] == 'Molecular_function':
-                        mfgo[code] = {'category': 'Molecular_function',
-                                      'mappings': go_dict[code]['mappings']}
+        if redownload and path.exists(entity_cache):
+            remove_file(entity_cache)
+            redownload_msg = True
+
+        # access entity data from RCSB
+        if path.exists(entity_cache): # check if local copy exists
+            msg = 'Entity data found on disk'
+            with open(entity_cache, 'r') as f_in:
+                data = json.load(f_in)
+        else:# check if local copy exists
+            url_endpoint = f'{url_entity}/{pdb_id}/{entity_id}'
+            try:
+                retrieved = requests.get(url_endpoint, timeout=df_GET_timeout)
+            except request.Timeout:
+                msg = 'Timeout while GET request for entity data'
                 utils.vprint(verbose, msg)
-                return mfgo, msg
+                return None, msg
 
-        try:
-            data = requests.get(self.go_url+ID, timeout=request_timeout)
-        except requests.Timeout:
-            msg = 'GET request timeout'
-            utils.vprint(verbose, msg)
-            return None, msg
+            if retrieved.status_code != 200:
+                msg = (f'GET request for entity data failed with code '
+                       f'{retrieved.status_code}')
+                utils.vprint(verbose, msg)
+                return None, msg
 
-        # failure on the server side
-        if data.status_code != 200:
-            msg = f'GET request failed with code {data.status_code}'
-            utils.vprint(verbose, msg)
-            return None, msg
+            msg = ('Entity data re-retrieved from RCSB' if redownload_msg
+                   else 'Entity data retrieved from RCSB')
+            data = retrieved.json()
+            with open(entity_cache, 'w+') as f_out:
+                json.dump(data, f_out,
+                          indent=4, separators=(',', ': '), sort_keys=False)
 
-        decoded = data.json()
-        go_dict = decoded[ID.lower()]['GO']
+        # read MF-GO annotations
+        # mfgo_endpoints = []
+        mfgo_all = []
+        if 'rcsb_polymer_entity_annotation' in data:
+            for anno in data['rcsb_polymer_entity_annotation']:
+                mfgo_id = anno['annotation_id']
 
-        mfgo = {}
-        for code in go_dict:
-            if go_dict[code]['category'] == 'Molecular_function':
-                mfgo[code] = {'category': 'Molecular_function',
-                              'mappings': go_dict[code]['mappings']}
+                # look for GO tags
+                if not mfgo_id[:2] == 'GO':
+                    continue
+                # look for the molecular_function tag (GO:0003674)
+                mfgo_lineage = [e['id'] for e in anno['annotation_lineage']]
+                if not 'GO:0003674' in mfgo_lineage:
+                    continue
 
-        with open(mfgo_cache, 'w+') as f_out:
-            json.dump(go_dict, f_out,
-                      indent=4, separators=(',', ': '), sort_keys=True)
+                # mfgo_endpoints.append(mfgo_id)
+                mfgo_all += mfgo_lineage
+        mfgo_all = np.unique(mfgo_all)
 
-        msg = 'Re-downloaded' if redownload_msg else 'Downloaded'
+        # msg = 'Re-downloaded' if redownload_msg else 'Downloaded'
         utils.vprint(verbose, msg)
-        return mfgo, msg
+        return mfgo_all, msg
 
     # def get_similarity_dataset(self, sim_cutoff, lt_heavy_atoms=5000):
     #     pass
@@ -242,16 +336,16 @@ class Preprocessor():
     def gen_labels(self, retry_download=False, redownload=False, verbose=None):
 
         '''
-        1. Retrieves MF-GO annotations for all ID to retrieve list of GO
-           categories
-        2. Generates the labels for all IDs base on the list of GO
-           entries (the dimension of the label is equal to the length of
-           the list)
+        Retrieves MF-GO terms using the RCSB Search API and generates the
+        labels for all IDs base on the list of GO entries (the dimension
+        of the label is equal to the length of the list)
         '''
 
         id_list_file = path.join(self.target_dir, df_id_list_filename)
         print(f'Processing {id_list_file}')
         id_list = np.loadtxt(id_list_file, dtype=np.str_)
+        if id_list.size == 1:
+            id_list = np.array([id_list])
 
         print('Generating labels...')
         verbose = self.verbose if verbose is None else verbose
@@ -272,7 +366,7 @@ class Preprocessor():
 
         # get list of PDBs/chains that should be skipped
         log_content, logged_ids = utils.read_logs(self.mfgo_log)
-        logged_ids = [ID for ID in logged_ids]
+        # logged_ids = [ID for ID in logged_ids] # defunct
         utils.vprint(verbose,
                      f' -> {len(logged_ids)} PDB entries found in log, '
                      f'{len(set(logged_ids) & set(id_list))} to be skipped')
@@ -280,51 +374,51 @@ class Preprocessor():
         ################################################################
         # retrieve MF-GO annotations
         ################################################################
-        mfgo_list = [] # holder for list of all MF-GOs
+        id_mfgo = {}
         for ID in tqdm(id_list, unit=' entries',
                        desc='Retrieving MF-GO',
                        ascii=True, dynamic_ncols=True):
 
+            pdb_id = ID[:4]
+            chain_id_rcsb = ID[5:] if len(ID)>5 else None
+            instance_id = format_pdb_chain_id(pdb_id, chain_id_rcsb)
+
             ############################################################
             # skip if the PDB/chain failed to download in a previous run
             ############################################################
-            if ID in logged_ids:
+            if instance_id in logged_ids:
                 # copy entry to dataset-specific log
-                idx = logged_ids.index(ID)
+                idx = logged_ids.index(instance_id)
                 utils.append_to_file(log_content[idx], dataset_log)
-                failed_ids.append(ID)
-                tqdm.write(f'  Skipping \'{ID}\'')
+                failed_ids.append(instance_id)
+                tqdm.write(f'  Skipping \'{instance_id}\'')
                 continue
 
             # if the PDB entry was not skipped
-            tqdm.write(f'  Processing \'{ID}\'...')
+            tqdm.write(f'  Processing \'{instance_id}\'...')
 
             ############################################################
             # try to download MF-GO
             ############################################################
             tqdm.write('    Fetching MF-GO...')
-            mfgo, msg = self._get_mfgo_for_pdb(ID[:4], redownload=redownload,
-                                               verbose=False)
+            mfgo, msg = self._get_mfgo(pdb_id, chain_id_rcsb,
+                                            redownload=redownload,
+                                            verbose=False)
             tqdm.write(f'        {msg}')
             if mfgo is None:
-                utils.append_to_file(f'{ID} -> MF-GO: {msg}', dataset_log)
-                utils.append_to_file(f'{ID} -> MF-GO: {msg}', self.mfgo_log)
-                failed_ids.append(ID)
+                utils.append_to_file(f'{instance_id} -> MF-GO: {msg}',
+                                     dataset_log)
+                utils.append_to_file(f'{instance_id} -> MF-GO: {msg}',
+                                     self.mfgo_log)
+                failed_ids.append(instance_id)
                 continue
             else:
-                processed_ids.append(ID)
-
-            ############################################################
-            # get a list of all mfgo codes
-            ############################################################
-            for code in mfgo:
-                for m in mfgo[code]['mappings']:
-                    if m['chain_id'] == ID[5:]: # chain_id = auth_asym_id
-                        mfgo_list.append(code)
-                        break # at most one entry of the chain per MF-GO
+                processed_ids.append(instance_id)
+                id_mfgo[instance_id] = mfgo
 
         # get list of unique items
-        mfgo_unique, mfgo_cnt = np.unique(mfgo_list, return_counts=True)
+        mfgo_all = np.concatenate([e for e in id_mfgo.values()])
+        mfgo_unique, mfgo_cnt = np.unique(mfgo_all, return_counts=True)
 
         # save info to drive
         np.savetxt(path.join(self.template_dir, df_mfgo_cnt_filename),
@@ -333,32 +427,22 @@ class Preprocessor():
         ################################################################
         # generate labels for dataset
         ################################################################
-        id_mfgo = {}
-        for ID in tqdm(processed_ids, unit=' entries',
-                       desc='Generating labels',
-                       ascii=True, dynamic_ncols=True):
-
-            # skip ID if MF-GO was not available
-            if ID in failed_ids:
-                continue
-            else:
-                mfgo, _ = self._get_mfgo_for_pdb(ID[:4], redownload=redownload,
-                                                 verbose=False)
+        for instance_id in tqdm(processed_ids, unit=' entries',
+                                desc='Generating labels',
+                                ascii=True, dynamic_ncols=True):
 
             labels = []
-            for code in mfgo:
-                for m in mfgo[code]['mappings']:
-                    if m['chain_id'] == ID[5:]:
-                        # get index of the code
-                        loc = np.argwhere(mfgo_unique==code)
-                        # if there is no match (if num < self.go_thres)
-                        if loc.size == 0:
-                            continue
-                        # append index to list if there is a match
-                        else:
-                            labels.append(int(loc[0,0]))
+            for code in id_mfgo[instance_id]:
+                # get index of the code
+                loc = np.argwhere(mfgo_unique==code)
+                # if there is no match (if num < self.go_thres)
+                if loc.size == 0:
+                    continue
+                # append index to list if there is a match
+                else:
+                    labels.append(int(loc[0,0]))
 
-            id_mfgo[utils.id_to_filename(ID)] = labels
+            id_mfgo[instance_id] = labels
 
         # write labels to drive
         mfgo_file = path.join(self.template_dir, df_mfgo_filename)
@@ -368,7 +452,7 @@ class Preprocessor():
 
         return id_mfgo
 
-    def _get_struct(self, ID, verbose=None):
+    def _get_struct(self, pdb_id, chain_id_rcsb, verbose=None):
 
         '''
         Retrieves protein structure through ProDy. Returns the structure
@@ -376,11 +460,13 @@ class Preprocessor():
         lowercase, etc.), and a string explaining the reason of success
         or failure of the process.
 
-        Caution: use auth_asym_id for chain ID (ProDy uses auth_asym_id)
+        Caution: use asym_id for chain ID (ProDy uses auth_asym_id)
         '''
 
         verbose = self.verbose if verbose is None else verbose
-        utils.vprint(verbose, f'Retrieving protein structure for \'{ID}\'...',
+        utils.vprint(verbose,
+                     f'Retrieving protein structure for '
+                     f'\'{pdb_id}-{chain_id_rcsb}\'...',
                      end='', flush=True)
 
         # switch working directory to prevent ProDy from polluting
@@ -390,10 +476,10 @@ class Preprocessor():
 
         # return data for all chains in PDB entry if no chains were
         # specified
-        if len(ID) == 4:
+        if chain_id_rcsb is None:
             raise NotImplementedError('Only supports monomers (chains), '
                                       'please specify chain ID.')
-            atoms = prody.parsePDB(ID, subset=df_atomselect)
+            atoms = prody.parsePDB(pdb_id, subset=df_atomselect)
             chdir(cwd) # switch working directory back ASAP
 
             # if parse was successful
@@ -408,12 +494,14 @@ class Preprocessor():
 
         # if chain ID was specified
         else:
-            pdbID, chainID = ID[:4], ID[5:]
+            chain_id_auth, _ = self.chain_id_rcsb2auth(pdb_id, chain_id_rcsb,
+                                                       redownload=False,
+                                                       verbose=False)
 
             try:
-                atoms = prody.parsePDB(pdbID,
+                atoms = prody.parsePDB(pdb_id,
                                        subset=df_atomselect,
-                                       chain=chainID)
+                                       chain=chain_id_auth)
             except UnicodeDecodeError as errMsg:
                 chdir(cwd)
                 utils.vprint(verbose, errMsg)
@@ -423,16 +511,15 @@ class Preprocessor():
             if atoms is not None:
                 chdir(cwd)
 
-                if atoms[chainID] is not None:
-                    msg = 'Structure downloaded/parsed'
-                    utils.vprint(verbose, 'Done')
-                    return atoms[chainID].copy(), msg
+                msg = 'Structure downloaded/parsed'
+                utils.vprint(verbose, 'Done')
+                return atoms, msg
 
-                else:
-                    msg = (f'ProDy cannot resolve chain ID {chainID} '
-                           f'(is it auth_asym_id?)')
-                    utils.vprint(verbose, msg)
-                    return None, msg
+                # else:
+                #     msg = (f'ProDy cannot resolve chain ID (auth_asym_id) '
+                #            f'{chain_id_auth}')
+                #     utils.vprint(verbose, msg)
+                #     return None, msg
 
             else: # ProDy cannot download structure
                 chdir(cwd)
@@ -440,7 +527,7 @@ class Preprocessor():
                 utils.vprint(verbose, msg)
                 return None, msg
 
-    def _get_PI(self, ID, simplex,
+    def _get_PI(self, pdb_id, chain_id_rcsb, save_dir, simplex,
                 img_range=df_pi_range, img_size=df_pi_size,
                 coords=None, rebuild_existing=False, verbose=None):
 
@@ -455,30 +542,30 @@ class Preprocessor():
         product is saved on disk.
         '''
 
+        instance_id = format_pdb_chain_id(pdb_id, chain_id_rcsb)
+
         verbose = self.verbose if verbose is None else verbose
-        utils.vprint(verbose, f'Retrieving persistence image for \'{ID}\'...',
+        utils.vprint(verbose,
+                     f'Retrieving persistence image for \'{instance_id}\'...',
                      end='', flush=True)
 
-        filename = utils.id_to_filename(ID)
-        save_dir = path.join(df_pi_root, pi_setup_folder.format(simplex))
-        makedirs(save_dir, exist_ok=True)
-        pi_file = path.join(save_dir, f'{filename}.npy')
+        pi_file = path.join(save_dir, f'{instance_id}.npy')
 
         rebuild_msg = False
+        if rebuild_existing and path.exsits(pi_file):
+            remove_file(pi_file)
+            # change the output for rebuilt entries
+            rebuild_msg = True
+
         if path.exists(pi_file):
-            if rebuild_existing:
-                remove_file(pi_file)
-                # change the output for rebuilt entries
-                rebuild_msg = True
-            else:
-                msg = 'Data found on disk'
-                pers_img = np.load(pi_file)
-                utils.vprint(verbose, msg)
-                return pers_img, msg
+            msg = 'Data found on disk'
+            pers_img = np.load(pi_file)
+            utils.vprint(verbose, msg)
+            return pers_img, msg
 
         # try computing if file not found on disk
         if not coords: # use coords if given to save computation
-            atoms, msg = self._get_struct(ID, verbose=False)
+            atoms, msg = self._get_struct(pdb_id, chain_id_rcsb, verbose=False)
             if atoms is None:
                 utils.vprint(verbose, msg)
                 return None, msg
@@ -524,7 +611,7 @@ class Preprocessor():
         utils.vprint(verbose, msg)
         return pers_img, msg
 
-    def comp_freqs(self, ID, atoms=None,
+    def comp_freqs(self, pdb_id, chain_id_rcsb, atoms=None,
                    cutoff=df_cutoff, # gamma=df_gamma,
                    n_modes=df_n_modes, nCPUs=cpu_count(), verbose=None):
 
@@ -534,17 +621,20 @@ class Preprocessor():
         specified in the argument 'ID'.
         '''
 
+        instance_id = format_pdb_chain_id(pdb_id, chain_id_rcsb)
+
         verbose = self.verbose if verbose is None else verbose
-        utils.vprint(verbose, f'Computing modes for \'{ID}\'...',
+        utils.vprint(verbose,
+                     f'Computing modes for \'{instance_id}\'...',
                      end='', flush=True)
 
         if not atoms: # use coords if given to save computation
-            atoms, msg = self._get_struct(ID, verbose=False)
+            atoms, msg = self._get_struct(pdb_id, chain_id_rcsb, verbose=False)
             if atoms is None:
                 utils.vprint(verbose, msg)
                 return None, None, msg
 
-        anm = prody.ANM(name=ID)
+        anm = prody.ANM(name=instance_id)
         anm.buildHessian(atoms, cutoff=cutoff, gamma=df_gamma,
                          norm=True, n_cpu=nCPUs)
 
@@ -561,7 +651,8 @@ class Preprocessor():
 
         return anm, freqs, 'Computed'
 
-    def _get_tnm_graph(self, ID, cutoff,
+    def _get_tnm_graph(self,  pdb_id, chain_id_rcsb, nma_dir,
+                       cutoff,
                        nCPUs, rebuild_existing=False,
                        verbose=None):
         '''
@@ -574,43 +665,44 @@ class Preprocessor():
         Computation is delegated to the "official" TNM software.
         '''
 
+        instance_id = format_pdb_chain_id(pdb_id, chain_id_rcsb)
+
         verbose = self.verbose if verbose is None else verbose
         utils.vprint(verbose,
-                     f'Retrieving graphs (TNM) for \'{ID}\'...',
+                     f'Retrieving graphs (TNM) for \'{instance_id}\'...',
                      end='', flush=True)
 
         # define save directory for graphs
-        save_dir = path.join(df_graph_root,
-                             tnm_setup_folder.format(cutoff))
-        makedirs(save_dir, exist_ok=True)
-        filename = utils.id_to_filename(ID)
-        graph_file = path.join(save_dir, f'{filename}.json')
+        graph_file = path.join(nma_dir, f'{instance_id}.json')
+
+        rebuild_msg = False
+        if rebuild_existing and path.exists(graph_file):
+            remove_file(graph_file)
+            # change output message if entry is rebuilt
+            rebuild_msg = True
 
         # returns data found on disk if rebuild is not required
-        rebuild_msg = False
         if path.exists(graph_file):
-            if rebuild_existing:
-                remove_file(graph_file)
-                # change output message if entry is rebuilt
-                rebuild_msg = True
-            else:
-                msg = 'Data found on disk'
-                with open(graph_file, 'r') as f_in:
-                    graph_dict = json.load(f_in)
-                utils.vprint(verbose, msg)
-                return graph_dict, msg
+            msg = 'Data found on disk'
+            with open(graph_file, 'r') as f_in:
+                graph_dict = json.load(f_in)
+            self.all_resnames += [n['resname'] for n in graph_dict['nodes']]
+            utils.vprint(verbose, msg)
+            return graph_dict, msg
 
-        if len(ID) == 4:
+        if chain_id_rcsb is None:
             raise NotImplementedError('Only supports monomers (chains), '
                                       'please specify chain ID.')
-            # you'll have to figure out all chains within the bioassembly
+            # gotta find all chains within the bioassembly
         else:
-            pdbID, chainID = ID[:4], ID[5:]
+            chain_id_auth, _ = self.chain_id_rcsb2auth(pdb_id, chain_id_rcsb,
+                                                       redownload=False,
+                                                       verbose=False)
 
         utils.vprint(verbose, 'TNM modes...', flush=True)
-        cache_dir = path.join(tnm_cache_dir, utils.id_to_filename(ID))
+        cache_dir = path.join(tnm_cache_dir, instance_id)
         makedirs(cache_dir, exist_ok=True)
-        prefix = tnm_setup_filename.format(pdbID, chainID, cutoff)
+        prefix = tnm_setup_filename.format(pdb_id, chain_id_rcsb, cutoff)
 
         script_file = path.join(cache_dir, f'{prefix}.in')
         tnm_log_file = path.join(cache_dir, f'{prefix}.log')
@@ -633,8 +725,8 @@ class Preprocessor():
         if not all(file_existence):
             # decompress the .pdb.gz file downloaded by ProDy
             compressed_file = path.join(pdb_cache_dir,
-                                        f'{pdbID.lower()}.pdb.gz')
-            uncompressed_file = path.join(cache_dir, f'{pdbID}.pdb')
+                                        f'{pdb_id.lower()}.pdb.gz')
+            uncompressed_file = path.join(cache_dir, f'{pdb_id}.pdb')
             # check if uncompressed file already exists
             if not path.exists(uncompressed_file):
                 if not path.exists(compressed_file):
@@ -648,7 +740,7 @@ class Preprocessor():
             with open(path.join(module_dir, 'template-tnm.in'), 'r') as f:
                 script_content = f.read()
             replacements = [('PDBID_PLACEHOLDER',   uncompressed_file),
-                            ('CHAINID_PLACEHOLDER', str(chainID)),
+                            ('CHAINID_PLACEHOLDER', str(chain_id_auth)),
                             ('CUTOFF',              str(cutoff))]
             for old, new in replacements:
                 script_content = script_content.replace(old, new)
@@ -661,6 +753,7 @@ class Preprocessor():
             cwd = getcwd()
             f_log = open(tnm_log_file, 'w')
             chdir(cache_dir)
+            # need to have tnm software in PATH
             subprocess.run(['tnm', script_file], stdout=f_log)
             chdir(cwd)
             f_log.close()
@@ -683,20 +776,14 @@ class Preprocessor():
         mapping = [line[:-1].split(' ') for line in lines]
 
         # indices for dynamical coupling
-        dc_idx = [int(m[0]) for m in mapping]
+        dc_idx = [m[0] for m in mapping]
 
         # list of residue types, indices for contact map, and chain id
         # of each residue
-        resnames_1, cont_idx, chain_id = map(
+        resnames_1, auth_seq_ids, _ = map(
             list,
             zip(*[m[1].split('_') for m in mapping])
         )
-        try:
-            cont_idx = [int(idx) for idx in cont_idx]
-        except ValueError as err:
-            msg = err
-            utils.vprint(verbose, msg)
-            return None, msg
 
         # keep a list of all resnames encountered in the dataset
         self.all_resnames += resnames_1
@@ -705,7 +792,7 @@ class Preprocessor():
         n_residues = len(lines)
 
         dc_dict = {dc_idx[i]: i for i in range(n_residues)}
-        cont_dict = {cont_idx[i]: i for i in range(n_residues)}
+        cont_dict = {auth_seq_ids[i]: i for i in range(n_residues)}
 
         ################################################################
         # convert TNM results to adjacency matrices
@@ -714,13 +801,13 @@ class Preprocessor():
                      end='', flush=True)
 
         # process contact map
-        raw_data = np.loadtxt(cont_file, skiprows=1,
-                              usecols=(0,1,2)).reshape((-1,3))
+        raw_data = np.loadtxt(cont_file, skiprows=1, usecols=(0,1,2),
+                              dtype=np.str_)
         cont = np.zeros((n_residues, n_residues), dtype=np.int_)
         for entry in raw_data:
             try:
-                i = cont_dict[int(entry[0])]
-                j = cont_dict[int(entry[1])]
+                i = cont_dict[entry[0]]
+                j = cont_dict[entry[1]]
             except KeyError as err:
                 msg = f'Random node index reported by TNM software ({err})'
                 utils.vprint(verbose, msg)
@@ -731,25 +818,39 @@ class Preprocessor():
 
         # process dynamical coupling edges
         dc_matrices = {}
-        for dc in ['directionality', 'coordination', 'deformation']:
-            file = path.join(cache_dir, f'{prefix}.{dc}_coupling.dat')
-            raw_data = np.loadtxt(file, skiprows=3).reshape((-1,3))
-            adj_mat = np.zeros((n_residues, n_residues), dtype=np.int_)
-            for entry in raw_data:
-                i = dc_dict[int(entry[0])]
-                j = dc_dict[int(entry[1])]
+        # starting with co-dir (use custom threshold)
+        dc = 'directionality'
+        file = path.join(cache_dir, f'{prefix}.{dc}_coupling.dat')
+        raw_data = np.loadtxt(file, skiprows=3, dtype=np.str_)
+        adj_mat = np.zeros((n_residues, n_residues), dtype=np.int_)
+        for entry in raw_data:
+            if float(entry[2]) > df_codir_thres:
+                i = dc_dict[entry[0]]
+                j = dc_dict[entry[1]]
                 adj_mat[i,j] = 1
                 adj_mat[j,i] = 1
-            dc_matrices[dc] = adj_mat
-            comb += adj_mat
+        dc_matrices[dc] = adj_mat
+        comb += adj_mat
+        # # coord and deform (use TNM default threshold)
+        # for dc in ['coordination', 'deformation']:
+        #     file = path.join(cache_dir, f'{prefix}.{dc}_coupling.dat')
+        #     raw_data = np.loadtxt(file, skiprows=3, dtype=np.str_)
+        #     adj_mat = np.zeros((n_residues, n_residues), dtype=np.int_)
+        #     for entry in raw_data:
+        #         i = dc_dict[entry[0]]
+        #         j = dc_dict[entry[1]]
+        #         adj_mat[i,j] = 1
+        #         adj_mat[j,i] = 1
+        #     dc_matrices[dc] = adj_mat
+        #     comb += adj_mat
 
         ################################################################
         # convert everything into graphs
         ################################################################
         graph = nx.from_numpy_array(comb)
-        graph.graph['pdbID'] = ID[:4]
-        if len(ID) > 4:
-            graph.graph['chainID'] = ID[5:]
+        graph.graph['pdbID'] = pdb_id.upper()
+        if chain_id_rcsb is not None:
+            graph.graph['chainID'] = chain_id_rcsb
 
         utils.vprint(verbose, 'Node Attributes...', end='', flush=True)
         attrs = {i: {'resname': r} for i, r in enumerate(resnames_1)}
@@ -758,20 +859,20 @@ class Preprocessor():
         # modify edge attributes
         utils.vprint(verbose, 'Edge Attributes...', end='', flush=True)
         for nodeI, nodeJ in graph.edges:
-            graph.edges[(nodeI, nodeJ)]['edge_type'] = [0,0,0,0]
+            graph.edges[(nodeI, nodeJ)]['edge_type'] = [0,0]#,0,0]
             if cont[nodeI][nodeJ] == 1: # contact edge
                 graph.edges[(nodeI, nodeJ)]['edge_type'][0] = 1
             if dc_matrices['directionality'][nodeI][nodeJ] == 1:
                 graph.edges[(nodeI, nodeJ)]['edge_type'][1] = 1
-            if dc_matrices['coordination'][nodeI][nodeJ] == 1:
-                graph.edges[(nodeI, nodeJ)]['edge_type'][2] = 1
-            if dc_matrices['deformation'][nodeI][nodeJ] == 1:
-                graph.edges[(nodeI, nodeJ)]['edge_type'][3] = 1
+            # if dc_matrices['coordination'][nodeI][nodeJ] == 1:
+            #     graph.edges[(nodeI, nodeJ)]['edge_type'][2] = 1
+            # if dc_matrices['deformation'][nodeI][nodeJ] == 1:
+            #     graph.edges[(nodeI, nodeJ)]['edge_type'][3] = 1
             # remove original weight
             del graph.edges[(nodeI, nodeJ)]['weight']
 
         # set node indices to match with .pdb file
-        mapping = dict(zip(graph, cont_idx)) #atoms.getResnums().tolist()))
+        mapping = dict(zip(graph, auth_seq_ids)) #atoms.getResnums().tolist()))
         graph = nx.relabel.relabel_nodes(graph, mapping)
 
         graph_dict = nx.readwrite.json_graph.node_link_data(graph)
@@ -784,7 +885,7 @@ class Preprocessor():
         utils.vprint(verbose, msg)
         return graph_dict, msg
 
-    def _get_anm_graph(self, ID,
+    def _get_anm_graph(self, pdb_id, chain_id_rcsb, nma_dir,
                        cutoff, n_modes, # gamma, corr_thres,
                        nCPUs, atoms=None, rebuild_existing=False,
                        verbose=None):
@@ -799,41 +900,41 @@ class Preprocessor():
         comp_freqs() for modal analysis with ProDy.
         '''
 
+        instance_id = format_pdb_chain_id(pdb_id, chain_id_rcsb)
+
         verbose = self.verbose if verbose is None else verbose
         utils.vprint(verbose,
-                     f'Retrieving graphs (ANM) for \'{ID}\'...',
+                     f'Retrieving graphs (ANM) for \'{instance_id}\'...',
                      end='', flush=True)
 
         # define save directory for graphs
-        save_dir = path.join(df_graph_root,
-                             anm_setup_folder.format(cutoff, n_modes))
-        makedirs(save_dir, exist_ok=True)
-        filename = utils.id_to_filename(ID)
-        graph_file = path.join(save_dir, f'{filename}.json')
+        graph_file = path.join(nma_dir, f'{instance_id}.json')
+
+        rebuild_msg = False
+        if rebuild_existing and path.exists(graph_file):
+            remove_file(graph_file)
+            # change output message if entry is rebuilt
+            rebuild_msg = True
 
         # returns data found on disk if rebuild is not required
-        rebuild_msg = False
         if path.exists(graph_file):
-            if rebuild_existing:
-                remove_file(graph_file)
-                # change output message if entry is rebuilt
-                rebuild_msg = True
-            else:
-                msg = 'Data found on disk'
-                with open(graph_file, 'r') as f_in:
-                    graph_dict = json.load(f_in)
-                utils.vprint(verbose, msg)
-                return graph_dict, msg
+            msg = 'Data found on disk'
+            with open(graph_file, 'r') as f_in:
+                graph_dict = json.load(f_in)
+            self.all_resnames += [n['resname'] for n in graph_dict['nodes']]
+            utils.vprint(verbose, msg)
+            return graph_dict, msg
 
         # if file was not found
         if not atoms: # use coords if given to save computation
-            atoms, msg = self._get_struct(ID, verbose=False)
+            atoms, msg = self._get_struct(pdb_id, chain_id_rcsb, verbose=False)
             if atoms is None:
                 utils.vprint(verbose, msg)
                 return None, msg
 
         utils.vprint(verbose, '  Computing modes...', end='', flush=True)
-        anm, freqs, msg = self.comp_freqs(ID, atoms=atoms, cutoff=cutoff,
+        anm, freqs, msg = self.comp_freqs(pdb_id, chain_id_rcsb,
+                                          atoms=atoms, cutoff=cutoff,
                                           n_modes=n_modes, nCPUs=nCPUs,
                                           verbose=False)
         if not anm:
@@ -852,7 +953,7 @@ class Preprocessor():
         # compute co-directionality coupling
         utils.vprint(verbose, 'Cross Correlation...', flush=True)
         codir = prody.calcCrossCorr(anm)
-        mask = np.abs(codir) > df_anm_codir_thres
+        mask = np.abs(codir) > df_codir_thres
         codir = np.where(mask, 1, 0) # correlation map is completed here
 
         # compute adjacency matrix
@@ -865,9 +966,9 @@ class Preprocessor():
         utils.vprint(verbose, '    Building Graphs...',
                      end='', flush=True)
         graph = nx.from_numpy_array(comb)
-        graph.graph['pdbID'] = ID[:4]
-        if len(ID) > 4:
-            graph.graph['chainID'] = ID[5:]
+        graph.graph['pdbID'] = pdb_id.upper()
+        if chain_id_rcsb is not None:
+            graph.graph['chainID'] = chain_id_rcsb
 
         # define node attributes
         utils.vprint(verbose, 'Node Attributes...', end='', flush=True)
@@ -902,9 +1003,6 @@ class Preprocessor():
             json.dump(graph_dict, f_out,
                       indent=4, separators=(',', ': '), sort_keys=True)
 
-        # freqs = [sqrt(mode.getEigval()) for mode in anm]
-        # cont_nEdges, corr_nEdges = [int(np.sum(cont)), int(-np.sum(diff))]
-
         msg = 'Rebuilt' if rebuild_msg else 'Computed'
         utils.vprint(verbose, msg)
         return graph_dict, msg
@@ -922,10 +1020,13 @@ class Preprocessor():
                   'r') as f_in:
             id_mfgo = json.load(f_in)
 
-        # fish out all entries in processed_ids
+        # fish out all MF-GO entries in processed_ids
+        new_id_mfgo = {}
         try:
-            new_id_mfgo = { utils.id_to_filename(ID): id_mfgo[ID]
-                            for ID in processed_ids }
+            if self.entry_type == 'monomer':
+                for ID in processed_ids:
+                    instance_id = format_pdb_chain_id(ID[:4], ID[5:])
+                    new_id_mfgo[instance_id] = id_mfgo[ID]
         except KeyError as err:
             print(f'{err} was not found in '
                   f'{path.join(self.template_dir, df_mfgo_filename)}')
@@ -1020,11 +1121,13 @@ class Preprocessor():
 
         verbose = self.verbose if verbose is None else verbose
 
+        self.all_resnames = []
+
         # holder for PBDs/chains that are successfully preprocessed
         processed_ids = []
         failed_ids = []
 
-        # save directory
+        # make directories to save annotation and data
         if enm_type == 'anm':
             nma_setup = anm_setup_folder.format(cutoff, n_modes)
         elif enm_type == 'tnm':
@@ -1034,10 +1137,16 @@ class Preprocessor():
                                       'enm type')
         pi_setup = pi_setup_folder.format(simplex)
         go_thres_setup = go_thres_folder.format(self.go_thres)
+        # annotation directories
         save_dir = path.join(self.annotations_dir,
                              f'{nma_setup}-{pi_setup}',
                              go_thres_setup)
         makedirs(save_dir, exist_ok=True)
+        # data directories
+        pi_dir = path.join(df_pi_root, pi_setup)
+        nma_dir = path.join(df_graph_root, nma_setup)
+        makedirs(pi_dir, exist_ok=True)
+        makedirs(nma_dir, exist_ok=True)
 
         # dataset-specific log
         dataset_log = path.join(save_dir, self.local_process_logname)
@@ -1059,46 +1168,50 @@ class Preprocessor():
                        desc='Processing data',
                        ascii=True, dynamic_ncols=True):
 
-            ############################################################
-            # skip everything if all data for ID is found on disk
-            ############################################################
-            if not rebuild_pi and not rebuild_graph:
-                graph_file = path.join(df_graph_root, nma_setup,
-                                       f'{utils.id_to_filename(ID)}.json')
-                pi_file = path.join(df_pi_root, pi_setup,
-                                    f'{utils.id_to_filename(ID)}.npy')
-                if path.exists(graph_file) and path.exists(pi_file):
-                    processed_ids.append(ID)
-                    tqdm.write(f'  All data for \'{ID}\' found on disk.')
-                    continue
+            pdb_id = ID[:4]
+            chain_id_rcsb = ID[5:] if len(ID)>5 else None
+            instance_id = format_pdb_chain_id(pdb_id, chain_id_rcsb)
+
+            # ############################################################
+            # # skip everything if all data for ID is found on disk
+            # ############################################################
+            # if not rebuild_pi and not rebuild_graph:
+            #     pi_file = path.join(pi_dir, f'{instance_id}.npy')
+            #     graph_file = path.join(nma_dir, f'{instance_id}.json')
+            #     if path.exists(graph_file) and path.exists(pi_file):
+            #         processed_ids.append(instance_id)
+            #         tqdm.write(f'  All data for \'{instance_id}\' '
+            #                    f'found on disk.')
+            #         continue
 
             ############################################################
             # if the PDB/chain failed to download in a previous run
             ############################################################
-            if ID in logged_ids:
+            if instance_id in logged_ids:
                 # copy entry to dataset-specific log
-                idx = logged_ids.index(ID)
+                idx = logged_ids.index(instance_id)
                 utils.append_to_file(log_content[idx], dataset_log)
-                failed_ids.append(ID)
-                tqdm.write(f'  Skipping processing of \'{ID}\'')
+                failed_ids.append(instance_id)
+                tqdm.write(f'  Skipping processing of \'{instance_id}\'')
                 continue
 
             # if the PDB entry was not skipped
-            tqdm.write(f'  Processing \'{ID}\'...')
+            tqdm.write(f'  Processing \'{instance_id}\'...')
 
             ############################################################
             # try to download/parse structure
             ############################################################
             tqdm.write('    Download/Parsing Structure...')
-            atoms, msg = self._get_struct(ID, verbose=False)
+            atoms, msg = self._get_struct(pdb_id, chain_id_rcsb, verbose=False)
             tqdm.write(f'      {msg}')
             if atoms is None:
                 # write entry to dataset-specific log
-                utils.append_to_file(f'{ID} -> ProDy: {msg}', dataset_log)
+                utils.append_to_file(f'{instance_id} -> ProDy: {msg}',
+                                     dataset_log)
                 # write new entry to log for all datasets
-                utils.append_to_file(f'{ID} -> ProDy: {msg}',
+                utils.append_to_file(f'{instance_id} -> ProDy: {msg}',
                                      self.download_parse_log)
-                failed_ids.append(ID)
+                failed_ids.append(instance_id)
                 continue
             coords = atoms.getCoords().tolist()
 
@@ -1106,15 +1219,18 @@ class Preprocessor():
             # try to generate persistence image
             ############################################################
             tqdm.write('    Persistence Img...')
-            pers_img, msg = self._get_PI(ID, coords=coords,
+            pers_img, msg = self._get_PI(pdb_id, chain_id_rcsb,
+                                         pi_dir,
+                                         coords=coords,
                                          simplex=simplex,
                                          rebuild_existing=rebuild_pi,
                                          verbose=False)
             tqdm.write(f'      {msg}')
             if pers_img is None:
                 # write entry to dataset-specific log
-                utils.append_to_file(f'{ID} -> PI: {msg}', dataset_log)
-                failed_ids.append(ID)
+                utils.append_to_file(f'{instance_id} -> PI: {msg}',
+                                     dataset_log)
+                failed_ids.append(instance_id)
                 continue
 
             ############################################################
@@ -1124,27 +1240,29 @@ class Preprocessor():
 
             if enm_type.lower() == 'anm':
                 graph_dict, msg = self._get_anm_graph(
-                    ID, atoms=atoms, cutoff=cutoff, n_modes=n_modes,
+                    pdb_id, chain_id_rcsb, nma_dir,
+                    atoms=atoms, cutoff=cutoff, n_modes=n_modes,
                     nCPUs=nCPUs, rebuild_existing=rebuild_graph, verbose=False
                 )
             elif enm_type.lower() == 'tnm':
                 graph_dict, msg = self._get_tnm_graph(
-                    ID, cutoff=cutoff, nCPUs=nCPUs,
+                    pdb_id, chain_id_rcsb, nma_dir,
+                    cutoff=cutoff, nCPUs=nCPUs,
                     rebuild_existing=rebuild_graph, verbose=False
                 )
             tqdm.write(f'      {msg}')
 
             if graph_dict is None:
                 # write entry to dataset-specific log
-                utils.append_to_file(f'{ID} -> NMA ({enm_type}): {msg}',
-                                     dataset_log)
-                failed_ids.append(ID)
+                utils.append_to_file(f'{instance_id} -> NMA ({enm_type}): '
+                                     f'{msg}', dataset_log)
+                failed_ids.append(instance_id)
                 continue
 
             ############################################################
             # all computations successful
             ############################################################
-            processed_ids.append(ID)
+            processed_ids.append(instance_id)
 
         # save a list of all residues encountered in dataset
         uni, cnt = np.unique(self.all_resnames, return_counts=True)
@@ -1167,12 +1285,6 @@ class Preprocessor():
             unsuccessful_pdb = [e[:4] for e in failed_ids]
             np.savetxt(path.join(save_dir, df_failed_pdb_filename),
                        unsuccessful_pdb, fmt='%s')
-        else:
-            raise NotImplementedError('Only supports monomers.')
-            np.savetxt(path.join(save_dir, df_pdb_filename),
-                       processed_ids, fmt='%s')
-            np.savetxt(path.join(save_dir, df_failed_pdb_filename),
-                       failed_ids, fmt='%s')
 
         print('  Done')
 
