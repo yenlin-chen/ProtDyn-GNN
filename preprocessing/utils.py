@@ -61,12 +61,6 @@ def vprint(verbose, *args, **kargs):
     if verbose:
         print(*args, **kargs)
 
-def id_to_filename(id):
-    if len(id) == 4:
-        return id.upper()
-    else:
-        return f'{id[:4].upper()}-{id[5:]}'
-
 def backup_file(filename):
     if path.exists(filename):
         idx = 1
