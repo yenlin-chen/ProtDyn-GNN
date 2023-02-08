@@ -18,17 +18,20 @@ from torch_geometric.nn import (
     LayerNorm
 )
 
-class singleGCN(nn.Module):
+class SingleGCN(nn.Module):
     def __init__(self,
-                 dim_node_feat, dim_pers_feat, dim_out,
+                 dim_node_feat, dim_pers_feat, n_classes,
                  dim_node_hidden,
                  dim_pers_embedding, dim_graph_embedding,
                  dropout_rate,
-                 n_graph_layers):
+                 n_graph_layers,
+                 dim_hidden_ls=None):
         '''Instantiate all components with trainable parameters'''
 
         self.all_args = locals()
         del self.all_args['self'], self.all_args['__class__']
+
+        self.n_classes = n_classes
 
         super().__init__()
 
@@ -58,13 +61,21 @@ class singleGCN(nn.Module):
             nn.ReLU()
         ) if dim_pers_embedding else None
 
-        # final layers to combine everything above
-        dim_total_embedding = dim_graph_embedding + dim_pers_embedding
-        self.fc_block = nn.Sequential(
-            nn.Linear(dim_total_embedding, dim_out),
-            nn.LayerNorm(dim_out),
-            nn.Dropout(p=dropout_rate)
-        )
+        # final block to combine everything above
+        if dim_hidden_ls is None:
+            dim_hidden_ls = [n_classes]
+        else:
+            dim_hidden_ls.append(n_classes)
+
+        fc_modules = []
+        dim_hidden_in = dim_graph_embedding + dim_pers_embedding
+        for dim_hidden_out in dim_hidden_ls:
+            fc_modules.append(nn.Linear(dim_hidden_in, dim_hidden_out))
+            fc_modules.append(nn.LayerNorm(dim_hidden_out))
+            fc_modules.append(nn.Dropout(p=dropout_rate))
+            dim_hidden_in = dim_hidden_out
+
+        self.fc_block = nn.Sequential(*fc_modules)
 
     def forward(self, data):
 
@@ -108,19 +119,21 @@ class singleGCN(nn.Module):
             summary(self)
         sys.stdout = sys.__stdout__
 
-class multiGCN(nn.Module):
+class MultiGCN(nn.Module):
     def __init__(self, n_dims,
-                 dim_node_feat, dim_pers_feat, dim_out,
+                 dim_node_feat, dim_pers_feat, n_classes,
                  dim_node_hidden,
                  dim_pers_embedding, dim_graph_embedding,
                  dropout_rate,
-                 n_graph_layers):
+                 n_graph_layers,
+                 dim_hidden_ls=None):
         '''Instantiate all components with trainable parameters'''
 
         self.all_args = locals()
         del self.all_args['self'], self.all_args['__class__']
 
-        self.n_dims = n_dims
+        self.n_classes = n_classes
+        self.n_graph_dims = n_dims
 
         super().__init__()
 
@@ -151,20 +164,30 @@ class multiGCN(nn.Module):
             nn.ReLU()
         ) if dim_pers_embedding else None
 
-        # final layers to combine everything above
-        dim_total_embedding = dim_graph_embedding + dim_pers_embedding
-        self.fc_block = nn.Sequential(
-            nn.Linear(dim_total_embedding, dim_out),
-            nn.LayerNorm(dim_out),
-            nn.Dropout(p=dropout_rate)
-        )
+
+        # final block to combine everything above
+        fc_modules = []
+
+        if dim_hidden_ls is None:
+            dim_hidden_ls = [n_classes]
+        else:
+            dim_hidden_ls.append(n_classes)
+
+        dim_hidden_in = dim_graph_embedding + dim_pers_embedding
+        for dim_hidden_out in dim_hidden_ls:
+            fc_modules.append(nn.Linear(dim_hidden_in, dim_hidden_out))
+            fc_modules.append(nn.LayerNorm(dim_hidden_out))
+            fc_modules.append(nn.Dropout(p=dropout_rate))
+            dim_hidden_in = dim_hidden_out
+
+        self.fc_block = nn.Sequential(*fc_modules)
 
     def forward(self, data):
         '''Make connects between the components to complete the model'''
 
         # pipe features from each layer of convolution into the fc layer
         jk_connection = []
-        for dim_idx in range(self.n_dims):
+        for dim_idx in range(self.n_graph_dims):
             x = data.x
             dim_slice = torch.argwhere(data.edge_type[:,dim_idx]==1).squeeze()
             dim_edge_index = data.edge_index[:, dim_slice]
